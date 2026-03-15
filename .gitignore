@@ -1,0 +1,24 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Windows temp/lock files
+~$*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Node (if ever added)
+node_modules/
+
+# Python (if ever added)
+__pycache__/
+*.pyc
+.env
