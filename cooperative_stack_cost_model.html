@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cooperative Stack Cost Model</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #1a1a1a; padding: 2rem; max-width: 960px; margin: 0 auto; }
+h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: #666; margin-bottom: 2rem; }
+.section { margin-bottom: 1.75rem; }
+.section-label { font-size: 11px; font-weight: 500; color: #666; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 10px; }
+.component-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.comp-card { background: #fff; border: 0.5px solid #ddd; border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: border-color 0.15s; }
+.comp-card:hover { border-color: #aaa; }
+.comp-card.selected { border: 1.5px solid #1D9E75; }
+.comp-card.selected .comp-name { color: #0F6E56; }
+.comp-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+.comp-name { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+.comp-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+.badge-live { background: #E1F5EE; color: #0F6E56; }
+.badge-early { background: #FAEEDA; color: #854F0B; }
+.badge-research { background: #EEEDFE; color: #3C3489; }
+.comp-desc { font-size: 11px; color: #666; line-height: 1.5; margin-bottom: 6px; }
+.comp-cost { font-size: 11px; color: #666; }
+.comp-cost span { font-weight: 500; color: #1a1a1a; }
+.slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.slider-label { font-size: 12px; color: #666; width: 220px; flex-shrink: 0; }
+.slider-val { font-size: 12px; font-weight: 500; color: #1a1a1a; min-width: 56px; text-align: right; }
+input[type=range] { flex: 1; accent-color: #1D9E75; }
+.metric-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 1.5rem; }
+.metric-card { background: #f5f5f3; border-radius: 8px; padding: 10px 12px; }
+.metric-label { font-size: 11px; color: #666; margin-bottom: 3px; }
+.metric-val { font-size: 20px; font-weight: 500; color: #1a1a1a; }
+.metric-sub { font-size: 10px; color: #888; margin-top: 2px; }
+.metric-val.green { color: #1D9E75; }
+.metric-val.red { color: #D85A30; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem; }
+.breakdown-card { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 12px 14px; }
+.breakdown-title { font-size: 11px; font-weight: 500; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+.brow { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 0.5px solid #eee; color: #666; }
+.brow:last-child { border-bottom: none; font-weight: 500; font-size: 13px; color: #1a1a1a; margin-top: 2px; }
+.brow .bval { color: #1a1a1a; }
+.brow .bval.range { color: #BA7517; font-size: 11px; }
+.warn-box { background: #FAEEDA; border-radius: 8px; padding: 8px 12px; font-size: 11px; color: #854F0B; margin-bottom: 10px; line-height: 1.5; }
+.tabs { display: flex; gap: 2px; margin-bottom: 1rem; border-bottom: 0.5px solid #ddd; }
+.tab { font-size: 12px; padding: 5px 12px; border: none; background: none; cursor: pointer; color: #666; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; font-weight: 500; }
+.legend-row { display: flex; gap: 14px; margin-bottom: 8px; font-size: 11px; color: #666; flex-wrap: wrap; }
+.ld { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 3px; vertical-align: middle; }
+.chart-wrap { position: relative; width: 100%; }
+@media (max-width: 600px) {
+  .component-grid, .two-col, .metric-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<h1>Cooperative stack cost model</h1>
+<p class="subtitle">Select protocol components below — all costs are derived from your choices and transaction frequency.</p>
+
+<div class="section">
+<div class="section-label">1. payment rail</div>
+<div class="component-grid" id="rail-group">
+<div class="comp-card" data-group="rail" data-id="usdc-base" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">USDC on Base</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">Circle-issued stablecoin on Coinbase L2. Low gas, high liquidity. Commercial dependency on Circle.</div>
+  <div class="comp-cost">Tx fee: <span>~$0.01–0.05</span> &nbsp;|&nbsp; Optimistic: <span>$0.01</span></div>
+</div>
+<div class="comp-card" data-group="rail" data-id="usdc-arb" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">USDC on Arbitrum</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">Arbitrum One L2. Slightly higher fees than Base, more decentralised validator set.</div>
+  <div class="comp-cost">Tx fee: <span>~$0.02–0.10</span> &nbsp;|&nbsp; Optimistic: <span>$0.02</span></div>
+</div>
+<div class="comp-card selected" data-group="rail" data-id="dai" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">DAI on Optimism</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">MakerDAO decentralised stablecoin. More censorship resistant, less liquid. Lower commercial dependency.</div>
+  <div class="comp-cost">Tx fee: <span>~$0.01–0.06</span> &nbsp;|&nbsp; Optimistic: <span>$0.01</span></div>
+</div>
+<div class="comp-card" data-group="rail" data-id="fiat" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Fiat via ACH/Stripe</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">Traditional rails. Zero crypto friction but 2.9% processing fee, full corporate dependency.</div>
+  <div class="comp-cost">Tx fee: <span>2.9% + $0.30</span> &nbsp;|&nbsp; Optimistic: <span>2.9%</span></div>
+</div>
+</div>
+</div>
+
+<div class="section">
+<div class="section-label">2. identity / credit attestation</div>
+<div class="component-grid" id="attest-group">
+<div class="comp-card" data-group="attest" data-id="reclaim" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Reclaim Protocol</span><span class="comp-badge badge-early">early prod</span></div>
+  <div class="comp-desc">ZK proofs over HTTPS sessions. Broadest data source coverage. Commercial dependency.</div>
+  <div class="comp-cost">Per proof: <span>~$0.05–0.50</span> &nbsp;|&nbsp; Optimistic: <span>$0.05</span></div>
+</div>
+<div class="comp-card" data-group="attest" data-id="zkpass" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">zkPass</span><span class="comp-badge badge-early">early prod</span></div>
+  <div class="comp-desc">ZK over TLS sessions. More institutional backing, more complex cryptographic assumptions.</div>
+  <div class="comp-cost">Per proof: <span>~$0.10–0.80</span> &nbsp;|&nbsp; Optimistic: <span>$0.10</span></div>
+</div>
+<div class="comp-card selected" data-group="attest" data-id="tlsnotary" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">TLSNotary</span><span class="comp-badge badge-research">research</span></div>
+  <div class="comp-desc">Open-source, no commercial layer. ETH Foundation backed. Rough DX. Recommended long-term.</div>
+  <div class="comp-cost">Per proof: <span>~$0.00–0.30</span> &nbsp;|&nbsp; Pessimistic: <span>$0.30</span></div>
+</div>
+<div class="comp-card" data-group="attest" data-id="vouching" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Social vouching (no ZK)</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">V1 fallback. No proof cost. Sybil risk, low credit ceilings, no external income anchoring.</div>
+  <div class="comp-cost">Per proof: <span>$0.00</span> &nbsp;|&nbsp; Hidden cost: <span>higher default risk</span></div>
+</div>
+</div>
+</div>
+
+<div class="section">
+<div class="section-label">3. DAO governance tooling</div>
+<div class="component-grid" id="dao-group">
+<div class="comp-card" data-group="dao" data-id="gnosis" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Gnosis Safe + Snapshot</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">Multisig treasury (on-chain) + off-chain gasless voting. Industry standard. Low cost.</div>
+  <div class="comp-cost">Annual infra: <span>~$200–800</span> &nbsp;|&nbsp; Per member amortised: <span>scales</span></div>
+</div>
+<div class="comp-card" data-group="dao" data-id="aragon" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Aragon OSx</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">Fully on-chain governance. More expensive, more transparent. Better for high-stakes votes.</div>
+  <div class="comp-cost">Annual infra: <span>~$500–2000</span> &nbsp;|&nbsp; Per member amortised: <span>scales</span></div>
+</div>
+<div class="comp-card selected" data-group="dao" data-id="colony" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Colony</span><span class="comp-badge badge-early">early prod</span></div>
+  <div class="comp-desc">Reputation-weighted governance. Better fit for labour networks where contribution matters.</div>
+  <div class="comp-cost">Annual infra: <span>~$300–1200</span> &nbsp;|&nbsp; Per member amortised: <span>scales</span></div>
+</div>
+<div class="comp-card" data-group="dao" data-id="offchain" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Off-chain (Loomio/custom)</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">Traditional cooperative governance tooling. Zero gas cost. Not crypto-native, no treasury integration.</div>
+  <div class="comp-cost">Annual infra: <span>~$100–500</span> &nbsp;|&nbsp; Per member amortised: <span>scales</span></div>
+</div>
+</div>
+</div>
+
+<div class="section">
+<div class="section-label">4. mutual credit / lending pool</div>
+<div class="component-grid" id="credit-group">
+<div class="comp-card selected" data-group="credit" data-id="custom-pool" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Custom on-chain pool</span><span class="comp-badge badge-early">early prod</span></div>
+  <div class="comp-desc">Bespoke smart contract pool governed by DAO. Full control, audit cost is significant.</div>
+  <div class="comp-cost">Audit cost: <span>$20k–80k</span> &nbsp;|&nbsp; Ongoing gas: <span>low</span></div>
+</div>
+<div class="comp-card" data-group="credit" data-id="aave" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Aave v3 (fork/use)</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">Battle-tested lending protocol. Can fork or integrate directly. Protocol fee on interest.</div>
+  <div class="comp-cost">Protocol fee: <span>~10% of interest</span> &nbsp;|&nbsp; Audit: <span>lower (audited)</span></div>
+</div>
+<div class="comp-card" data-group="credit" data-id="maple" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Maple Finance</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">Institutional on-chain credit pools. Designed for real-world borrowers. Higher fees.</div>
+  <div class="comp-cost">Origination fee: <span>~0.5–1%</span> &nbsp;|&nbsp; Protocol fee: <span>~15% of interest</span></div>
+</div>
+<div class="comp-card" data-group="credit" data-id="off-ledger" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Off-chain ledger (v1)</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">Traditional mutual credit ledger. No smart contract risk or cost. Not trustless.</div>
+  <div class="comp-cost">System cost: <span>~$50–200/yr</span> &nbsp;|&nbsp; Trust assumption: <span>high</span></div>
+</div>
+</div>
+</div>
+
+<div class="section">
+<div class="section-label">5. wallet abstraction &amp; fiat ramps</div>
+<div class="component-grid" id="wallet-group">
+<div class="comp-card" data-group="wallet" data-id="none" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">None (crypto-native only)</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">Users manage their own wallets. No abstraction layer, no fiat ramps. Full sovereignty, zero mainstream accessibility.</div>
+  <div class="comp-cost">Per-member cost: <span>$0</span> &nbsp;|&nbsp; Fiat conversion: <span>none</span></div>
+</div>
+<div class="comp-card selected" data-group="wallet" data-id="privy-basic" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Privy + Stripe ramp</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">Embedded wallet via Privy (email/social login). Stripe fiat on/off ramp. Sponsored gas via ERC-4337 paymaster. Recommended default.</div>
+  <div class="comp-cost">Wallet: <span>~$0.05–0.10/active user/mo</span> &nbsp;|&nbsp; Ramp: <span>0.5–1.5% per conversion</span></div>
+</div>
+<div class="comp-card" data-group="wallet" data-id="privy-moonpay" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Privy + Moonpay ramp</span><span class="comp-badge badge-live">live</span></div>
+  <div class="comp-desc">Embedded wallet via Privy. Moonpay fiat ramp — broader international coverage, slightly higher fees.</div>
+  <div class="comp-cost">Wallet: <span>~$0.05–0.10/active user/mo</span> &nbsp;|&nbsp; Ramp: <span>1.0–2.5% per conversion</span></div>
+</div>
+<div class="comp-card" data-group="wallet" data-id="web3auth" onclick="selectComponent(this)">
+  <div class="comp-header"><span class="comp-name">Web3Auth + Transak</span><span class="comp-badge badge-early">early prod</span></div>
+  <div class="comp-desc">Open-source MPC wallet infrastructure. Lower commercial dependency than Privy. Less mature DX. Transak fiat ramp.</div>
+  <div class="comp-cost">Wallet: <span>~$0.02–0.08/active user/mo</span> &nbsp;|&nbsp; Ramp: <span>0.9–2.0% per conversion</span></div>
+</div>
+</div>
+</div>
+
+<div class="section">
+<div class="section-label">worker profile &amp; transaction frequency</div>
+<div class="slider-row"><span class="slider-label">Annual income ($)</span><input type="range" min="30000" max="200000" step="5000" value="80000" id="s-income"><span class="slider-val" id="o-income">$80k</span></div>
+<div class="slider-row"><span class="slider-label">Jobs / payments received per year</span><input type="range" min="4" max="200" step="2" value="48" id="s-jobs"><span class="slider-val" id="o-jobs">48</span></div>
+<div class="slider-row"><span class="slider-label">Credit draws per year</span><input type="range" min="0" max="24" step="1" value="6" id="s-draws"><span class="slider-val" id="o-draws">6</span></div>
+<div class="slider-row"><span class="slider-label">Credit utilization (% of income)</span><input type="range" min="0" max="40" step="1" value="15" id="s-util"><span class="slider-val" id="o-util">15%</span></div>
+<div class="slider-row"><span class="slider-label">Governance votes per year</span><input type="range" min="1" max="52" step="1" value="12" id="s-votes"><span class="slider-val" id="o-votes">12</span></div>
+<div class="slider-row"><span class="slider-label">Network member count</span><input type="range" min="100" max="20000" step="100" value="1000" id="s-members"><span class="slider-val" id="o-members">1,000</span></div>
+<div class="slider-row"><span class="slider-label">Base rate — pool overhead &amp; liquidity (%)</span><input type="range" min="0.5" max="5" step="0.1" value="1.5" id="s-baserate"><span class="slider-val" id="o-baserate">1.5%</span></div>
+<div class="slider-row"><span class="slider-label">Risk premium at 100 members (%)</span><input type="range" min="0.5" max="10" step="0.25" value="5" id="s-riskprem"><span class="slider-val" id="o-riskprem">5%</span></div>
+<div class="slider-row"><span class="slider-label">Risk premium scale-down (% reduction per 1k members)</span><input type="range" min="0" max="50" step="5" value="20" id="s-riskscale"><span class="slider-val" id="o-riskscale">20%</span></div>
+<div class="slider-row"><span class="slider-label">Pool health adjustment (%)</span><input type="range" min="0" max="3" step="0.1" value="0.5" id="s-healthadj"><span class="slider-val" id="o-healthadj">0.5%</span></div>
+</div>
+
+<div class="section">
+<div class="section-label">default &amp; pool solvency</div>
+<div class="slider-row"><span class="slider-label">Annual default rate (% of credit volume)</span><input type="range" min="0" max="15" step="0.5" value="3" id="s-defaultrate"><span class="slider-val" id="o-defaultrate">3%</span></div>
+<div class="slider-row"><span class="slider-label">Recovery rate (% of defaulted balance recovered)</span><input type="range" min="0" max="100" step="5" value="55" id="s-recovery"><span class="slider-val" id="o-recovery">55%</span></div>
+<div class="slider-row"><span class="slider-label">Recovery lag (years to recover defaulted balance)</span><input type="range" min="0.5" max="5" step="0.5" value="2" id="s-recovlag"><span class="slider-val" id="o-recovlag">2 yrs</span></div>
+
+<div id="warn-area"></div>
+
+<div class="section-label" style="margin-bottom:10px;">per-member annual cost — derived from stack</div>
+<div class="metric-row">
+  <div class="metric-card"><div class="metric-label">Overhead (income-independent)</div><div class="metric-val" id="m-overhead">—</div><div class="metric-sub">opt–pes range</div></div>
+  <div class="metric-card"><div class="metric-label">Credit cost (income-dependent)</div><div class="metric-val" id="m-credit">—</div><div class="metric-sub" id="m-effrate-sub">—</div></div>
+  <div class="metric-card"><div class="metric-label">Total (optimistic)</div><div class="metric-val green" id="m-opt">—</div><div class="metric-sub">overhead + credit</div></div>
+  <div class="metric-card"><div class="metric-label">Total (pessimistic)</div><div class="metric-val red" id="m-pes">—</div><div class="metric-sub">overhead + credit</div></div>
+</div>
+
+<div id="solvency-panel" style="border-radius:8px;padding:12px 16px;margin-bottom:1.5rem;border:0.5px solid #ddd;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <span style="font-size:12px;font-weight:500;color:#1a1a1a;">Pool solvency check</span>
+    <span id="solvency-badge" style="font-size:11px;padding:3px 10px;border-radius:4px;font-weight:500;">—</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;">
+    <div><div style="font-size:10px;color:#888;margin-bottom:2px;">Annual interest income</div><div style="font-size:13px;font-weight:500;color:#1a1a1a;" id="sol-income">—</div></div>
+    <div><div style="font-size:10px;color:#888;margin-bottom:2px;">Annual net default loss</div><div style="font-size:13px;font-weight:500;color:#1a1a1a;" id="sol-loss">—</div></div>
+    <div><div style="font-size:10px;color:#888;margin-bottom:2px;">Pool surplus / (shortfall)</div><div style="font-size:13px;font-weight:500;" id="sol-surplus">—</div></div>
+    <div><div style="font-size:10px;color:#888;margin-bottom:2px;">Min rate needed to break even</div><div style="font-size:13px;font-weight:500;color:#1a1a1a;" id="sol-minrate">—</div></div>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="breakdown-card">
+    <div class="breakdown-title">per-member cost breakdown</div>
+    <div class="brow" style="font-size:11px;color:var(--color-text-secondary,#888);font-style:italic;border-bottom:none;padding-bottom:0;"><span>— overhead (income-independent) —</span></div>
+    <div class="brow"><span>Payment tx fees</span><span class="bval range" id="b-tx">—</span></div>
+    <div class="brow"><span>ZK attestation proofs</span><span class="bval range" id="b-zk">—</span></div>
+    <div class="brow"><span>ZK on-chain verification gas</span><span class="bval range" id="b-zkverify">—</span></div>
+    <div class="brow"><span>DAO governance gas</span><span class="bval range" id="b-dao">—</span></div>
+    <div class="brow"><span>Treasury disbursement gas</span><span class="bval range" id="b-treasury">—</span></div>
+    <div class="brow"><span>Credit pool tx gas</span><span class="bval range" id="b-creditgas">—</span></div>
+    <div class="brow"><span>Colony network fee (3% of income)</span><span class="bval range" id="b-colonyfee">—</span></div>
+    <div class="brow"><span>Infra (amortised)</span><span class="bval range" id="b-infra">—</span></div>
+    <div class="brow" style="font-size:11px;color:var(--color-text-secondary,#888);font-style:italic;border-bottom:none;padding-bottom:0;margin-top:6px;"><span>— wallet abstraction &amp; fiat ramps —</span></div>
+    <div class="brow"><span>Embedded wallet (annual)</span><span class="bval range" id="b-wallet">—</span></div>
+    <div class="brow"><span>Fiat ramp conversion fee</span><span class="bval range" id="b-ramp">—</span></div>
+    <div class="brow"><span>Paymaster / sponsored gas</span><span class="bval range" id="b-paymaster">—</span></div>
+    <div class="brow" style="font-weight:500;"><span>Overhead subtotal</span><span class="bval" id="b-overhead">—</span></div>
+    <div class="brow" style="font-size:11px;color:var(--color-text-secondary,#888);font-style:italic;border-bottom:none;padding-bottom:0;margin-top:6px;"><span>— credit (scales with income) —</span></div>
+    <div class="brow"><span>Base rate cost</span><span class="bval" id="b-credbase">—</span></div>
+    <div class="brow"><span>Risk premium cost</span><span class="bval" id="b-credrisk">—</span></div>
+    <div class="brow"><span>Health adj. cost</span><span class="bval" id="b-credhealth">—</span></div>
+    <div class="brow" style="font-weight:500;"><span>Credit subtotal</span><span class="bval" id="b-credtotal">—</span></div>
+    <div class="brow"><span>Total range</span><span class="bval" id="b-total">—</span></div>
+  </div>
+  <div class="breakdown-card">
+    <div class="breakdown-title">network-level annual costs</div>
+    <div class="brow"><span>DAO tooling / infra</span><span class="bval range" id="n-dao">—</span></div>
+    <div class="brow"><span>Smart contract audit</span><span class="bval range" id="n-audit">—</span></div>
+    <div class="brow"><span>Node / RPC infrastructure</span><span class="bval range" id="n-rpc">—</span></div>
+    <div class="brow"><span>Legal / compliance</span><span class="bval range" id="n-legal">—</span></div>
+    <div class="brow"><span>Total network fixed costs</span><span class="bval range" id="n-total">—</span></div>
+    <div class="brow"><span>Amortised per member</span><span class="bval range" id="n-amort">—</span></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('scale',event)">Cost vs member count</button>
+  <button class="tab" onclick="switchTab('stack',event)">Cost stack breakdown</button>
+  <button class="tab" onclick="switchTab('trad',event)">vs traditional stack</button>
+  <button class="tab" onclick="switchTab('solvency',event)">Pool solvency</button>
+</div>
+
+<div id="tab-scale">
+  <div class="legend-row">
+    <span><span class="ld" style="background:#1D9E75;"></span>Optimistic total</span>
+    <span><span class="ld" style="background:#D85A30;"></span>Pessimistic total</span>
+    <span><span class="ld" style="background:#888780;"></span>Network infra amortised</span>
+  </div>
+  <div class="chart-wrap" style="height:260px;"><canvas id="chart-scale"></canvas></div>
+</div>
+<div id="tab-stack" style="display:none;">
+  <div class="legend-row">
+    <span><span class="ld" style="background:#378ADD;"></span>Payment fees</span>
+    <span><span class="ld" style="background:#534AB7;"></span>ZK proofs</span>
+    <span><span class="ld" style="background:#7F77DD;"></span>ZK verify gas</span>
+    <span><span class="ld" style="background:#EF9F27;"></span>DAO gov gas</span>
+    <span><span class="ld" style="background:#FAC775;"></span>Treasury gas</span>
+    <span><span class="ld" style="background:#5DCAA5;"></span>Credit pool gas</span>
+    <span><span class="ld" style="background:#1D9E75;"></span>Credit interest</span>
+    <span><span class="ld" style="background:#888780;"></span>Infra amortised</span>
+  </div>
+  <div class="chart-wrap" style="height:280px;"><canvas id="chart-stack"></canvas></div>
+</div>
+<div id="tab-trad" style="display:none;">
+  <div class="legend-row">
+    <span><span class="ld" style="background:#D85A30;"></span>Traditional (platform + credit + banking)</span>
+    <span><span class="ld" style="background:#1D9E75;"></span>Cooperative optimistic</span>
+    <span><span class="ld" style="background:#5DCAA5;"></span>Cooperative pessimistic</span>
+  </div>
+  <div class="chart-wrap" style="height:260px;"><canvas id="chart-trad"></canvas></div>
+</div>
+<div id="tab-solvency" style="display:none;">
+  <div class="legend-row">
+    <span><span class="ld" style="background:#1D9E75;"></span>Annual interest income</span>
+    <span><span class="ld" style="background:#D85A30;"></span>Annual net default loss</span>
+    <span><span class="ld" style="background:#534AB7;"></span>Pool surplus / (shortfall)</span>
+  </div>
+  <div class="chart-wrap" style="height:260px;"><canvas id="chart-solvency"></canvas></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const COMPONENTS = {
+  rail: {
+    'usdc-base': { txOpt: 0.01, txPes: 0.05, fiatPct: 0, fiatFixed: 0, warn: null },
+    'usdc-arb':  { txOpt: 0.02, txPes: 0.10, fiatPct: 0, fiatFixed: 0, warn: null },
+    'dai':       { txOpt: 0.01, txPes: 0.06, fiatPct: 0, fiatFixed: 0, warn: null },
+    'fiat':      { txOpt: 0,    txPes: 0,    fiatPct: 0.029, fiatFixed: 0.30, warn: 'Fiat rail reintroduces 2.9% payment processing fee — eliminates the key cost advantage over traditional stack.' }
+  },
+  attest: {
+    'reclaim':   { proofOpt: 0.05, proofPes: 0.50, warn: 'Reclaim is a commercial protocol — pricing may change. Treat pessimistic estimate as planning floor.' },
+    'zkpass':    { proofOpt: 0.10, proofPes: 0.80, warn: 'zkPass pricing not yet publicly fixed. Range shown is estimated from comparable ZK compute costs.' },
+    'tlsnotary': { proofOpt: 0.00, proofPes: 0.30, warn: 'TLSNotary has no fixed pricing — compute cost borne by network or member. Pessimistic case assumes self-hosted node overhead.' },
+    'vouching':  { proofOpt: 0.00, proofPes: 0.00, warn: 'No ZK attestation selected. Credit ceilings will be lower and sybil risk higher. Model does not quantify default risk premium.' }
+  },
+  dao: {
+    'gnosis':   { infraOpt: 200,  infraPes: 800,  gasPerVoteOpt: 0.05, gasPerVotePes: 0.20, warn: null },
+    'aragon':   { infraOpt: 500,  infraPes: 2000, gasPerVoteOpt: 0.30, gasPerVotePes: 1.50, warn: null },
+    'colony':   { infraOpt: 300,  infraPes: 1200, gasPerVoteOpt: 0.10, gasPerVotePes: 0.60, warn: 'Colony charges a ~3% network fee on all expenditure payouts. This is included in the cost model as a per-member overhead line.' },
+    'offchain': { infraOpt: 100,  infraPes: 500,  gasPerVoteOpt: 0.00, gasPerVotePes: 0.00, warn: null }
+  },
+  credit: {
+    'custom-pool': { auditOpt: 20000, auditPes: 80000, protocolFee: 0,    originationFee: 0,      warn: 'Custom pool requires smart contract audit ($20k–80k one-time). Amortised over network lifetime.' },
+    'aave':        { auditOpt: 0,     auditPes: 5000,  protocolFee: 0.10, originationFee: 0,      warn: null },
+    'maple':       { auditOpt: 0,     auditPes: 2000,  protocolFee: 0.15, originationFee: 0.0075, warn: 'Maple charges origination fee per loan plus protocol fee on interest. Costs scale with credit volume.' },
+    'off-ledger':  { auditOpt: 50,    auditPes: 200,   protocolFee: 0,    originationFee: 0,      warn: 'Off-chain ledger is not trustless — requires network trust in the operator. Suitable for v1 only.' }
+  },
+  wallet: {
+    'none':          { walletPerUserPerMoOpt: 0,    walletPerUserPerMoPes: 0,    rampPctOpt: 0,     rampPctPes: 0,     paymasterPerTxOpt: 0,    paymasterPerTxPes: 0,    warn: 'No abstraction layer — users must manage their own wallets and acquire DAI directly. Inaccessible to non-crypto users.' },
+    'privy-basic':   { walletPerUserPerMoOpt: 0.05, walletPerUserPerMoPes: 0.10, rampPctOpt: 0.005, rampPctPes: 0.015, paymasterPerTxOpt: 0.002, paymasterPerTxPes: 0.01, warn: null },
+    'privy-moonpay': { walletPerUserPerMoOpt: 0.05, walletPerUserPerMoPes: 0.10, rampPctOpt: 0.010, rampPctPes: 0.025, paymasterPerTxOpt: 0.002, paymasterPerTxPes: 0.01, warn: 'Moonpay ramp fees are higher than Stripe. Better for international members but increases per-conversion cost.' },
+    'web3auth':      { walletPerUserPerMoOpt: 0.02, walletPerUserPerMoPes: 0.08, rampPctOpt: 0.009, rampPctPes: 0.020, paymasterPerTxOpt: 0.002, paymasterPerTxPes: 0.01, warn: 'Web3Auth is less mature than Privy. Lower commercial dependency but rougher developer experience.' }
+  }
+};
+
+let selected = { rail: 'dai', attest: 'tlsnotary', dao: 'colony', credit: 'custom-pool', wallet: 'privy-basic' };
+let charts = {};
+let activeTab = 'scale';
+
+function selectComponent(el) {
+  const group = el.dataset.group;
+  const id = el.dataset.id;
+  selected[group] = id;
+  document.querySelectorAll('[data-group="' + group + '"]').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  update();
+}
+
+function getSliders() {
+  return {
+    income: +document.getElementById('s-income').value,
+    jobs: +document.getElementById('s-jobs').value,
+    draws: +document.getElementById('s-draws').value,
+    util: +document.getElementById('s-util').value / 100,
+    votes: +document.getElementById('s-votes').value,
+    members: +document.getElementById('s-members').value,
+    baserate: +document.getElementById('s-baserate').value / 100,
+    riskprem: +document.getElementById('s-riskprem').value / 100,
+    riskscale: +document.getElementById('s-riskscale').value / 100,
+    healthadj: +document.getElementById('s-healthadj').value / 100,
+    defaultrate: +document.getElementById('s-defaultrate').value / 100,
+    recovery: +document.getElementById('s-recovery').value / 100,
+    recovlag: +document.getElementById('s-recovlag').value,
+  };
+}
+
+function compute(s, members) {
+  const rail = COMPONENTS.rail[selected.rail];
+  const attest = COMPONENTS.attest[selected.attest];
+  const dao = COMPONENTS.dao[selected.dao];
+  const credit = COMPONENTS.credit[selected.credit];
+
+  const txOpt = rail.fiatPct > 0 ? s.income * rail.fiatPct + s.jobs * rail.fiatFixed : s.jobs * rail.txOpt;
+  const txPes = rail.fiatPct > 0 ? s.income * rail.fiatPct + s.jobs * rail.fiatFixed : s.jobs * rail.txPes;
+
+  const colonyFeeOpt = selected.dao === 'offchain' ? 0 : s.income * 0.03;
+  const colonyFeePes = selected.dao === 'offchain' ? 0 : s.income * 0.03;
+
+  const proofFreq = 2;
+  const zkOpt = proofFreq * attest.proofOpt;
+  const zkPes = proofFreq * attest.proofPes;
+
+  const daoGasOpt = s.votes * dao.gasPerVoteOpt;
+  const daoGasPes = s.votes * dao.gasPerVotePes;
+
+  const creditTxOpt = selected.credit === 'off-ledger' ? 0 : s.draws * 2 * 0.05;
+  const creditTxPes = selected.credit === 'off-ledger' ? 0 : s.draws * 2 * 0.40;
+
+  const zkVerifyOpt = selected.attest === 'vouching' ? 0 : proofFreq * 0.08;
+  const zkVerifyPes = selected.attest === 'vouching' ? 0 : proofFreq * 0.60;
+
+  const treasuryGasOpt = selected.dao === 'offchain' ? 0 : (s.votes / 4) * 0.10;
+  const treasuryGasPes = selected.dao === 'offchain' ? 0 : (s.votes / 4) * 0.50;
+
+  const creditVolume = s.income * s.util;
+  const scaleF = Math.max(0, 1 - (members / 1000) * s.riskscale);
+  const effectiveRiskPrem = s.riskprem * scaleF;
+  const effectiveRate = s.baserate + effectiveRiskPrem + s.healthadj;
+  const baseInterest = creditVolume * effectiveRate;
+  const originFee = creditVolume * credit.originationFee * s.draws;
+  const protocolFee = baseInterest * credit.protocolFee;
+  const creditCost = baseInterest + originFee + protocolFee;
+
+  const rpcOpt = 600 + members * s.jobs * 0.00008;
+  const rpcPes = 1200 + members * s.jobs * 0.00025;
+  const legalOpt = 2000 + members * 1.50;
+  const legalPes = 5000 + members * 4.00;
+  const networkInfraOptTotal = dao.infraOpt + (credit.auditOpt / 5) + rpcOpt + legalOpt;
+  const networkInfraPesTotal = dao.infraPes + (credit.auditPes / 5) + rpcPes + legalPes;
+  const infraAmortOpt = networkInfraOptTotal / Math.max(members, 1);
+  const infraAmortPes = networkInfraPesTotal / Math.max(members, 1);
+
+  const wallet = COMPONENTS.wallet[selected.wallet];
+  const txCount = s.jobs + s.draws * 2 + s.votes;
+  const walletOpt = wallet.walletPerUserPerMoOpt * 12;
+  const walletPes = wallet.walletPerUserPerMoPes * 12;
+  const rampOpt = s.income * wallet.rampPctOpt;
+  const rampPes = s.income * wallet.rampPctPes;
+  const paymasterOpt = txCount * wallet.paymasterPerTxOpt;
+  const paymasterPes = txCount * wallet.paymasterPerTxPes;
+  const walletTotalOpt = walletOpt + rampOpt + paymasterOpt;
+  const walletTotalPes = walletPes + rampPes + paymasterPes;
+
+  const overheadOpt = txOpt + zkOpt + zkVerifyOpt + daoGasOpt + treasuryGasOpt + creditTxOpt + infraAmortOpt + walletTotalOpt + colonyFeeOpt;
+  const overheadPes = txPes + zkPes + zkVerifyPes + daoGasPes + treasuryGasPes + creditTxPes + infraAmortPes + walletTotalPes + colonyFeePes;
+  const totalOpt = overheadOpt + creditCost;
+  const totalPes = overheadPes + creditCost;
+
+  const totalCreditVolume = creditVolume * members;
+  const annualDefaultLoss = totalCreditVolume * s.defaultrate * (1 - s.recovery / s.recovlag);
+  const annualInterestIncome = baseInterest * members;
+  const poolSurplus = annualInterestIncome - annualDefaultLoss;
+  const solventRateNeeded = (totalCreditVolume > 0)
+    ? (annualDefaultLoss / members) / creditVolume
+    : 0;
+  const poolIsSolvent = poolSurplus >= 0;
+
+  return { txOpt, txPes, zkOpt, zkPes, zkVerifyOpt, zkVerifyPes, daoGasOpt, daoGasPes,
+           treasuryGasOpt, treasuryGasPes, creditCost, creditTxOpt, creditTxPes,
+           walletOpt, walletPes, rampOpt, rampPes, paymasterOpt, paymasterPes,
+           walletTotalOpt, walletTotalPes, colonyFeeOpt, colonyFeePes,
+           overheadOpt, overheadPes, infraAmortOpt, infraAmortPes, totalOpt, totalPes,
+           effectiveRate, effectiveRiskPrem,
+           annualInterestIncome, annualDefaultLoss, poolSurplus, poolIsSolvent, solventRateNeeded,
+           networkInfraOptTotal, networkInfraPesTotal, rpcOpt, rpcPes, legalOpt, legalPes, dao, credit };
+}
+
+function fmtR(opt, pes) { return '$' + Math.round(opt).toLocaleString() + '–$' + Math.round(pes).toLocaleString(); }
+function fmtV(v) { return '$' + Math.round(v).toLocaleString(); }
+function fmtK(v) { return v >= 1000 ? '$' + (v/1000).toFixed(1) + 'k' : '$' + Math.round(v); }
+
+function updateWarnings() {
+  const warns = [];
+  ['rail','attest','dao','credit','wallet'].forEach(g => {
+    const c = COMPONENTS[g][selected[g]];
+    if (c && c.warn) warns.push(c.warn);
+  });
+  document.getElementById('warn-area').innerHTML = warns.map(w => '<div class="warn-box">' + w + '</div>').join('');
+}
+
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function renderChart(tab) {
+  const s = getSliders();
+
+  const logCounts = [];
+  for (let exp = Math.log10(100); exp <= Math.log10(10000); exp += (Math.log10(10000) - Math.log10(100)) / 60) {
+    logCounts.push(Math.round(Math.pow(10, exp)));
+  }
+  if (logCounts[logCounts.length-1] !== 10000) logCounts.push(10000);
+
+  const logXAxis = {
+    type: 'logarithmic',
+    ticks: {
+      font: { size: 11 },
+      callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v,
+      autoSkip: true,
+      maxTicksLimit: 8
+    },
+    grid: { color: 'rgba(128,128,128,0.1)' }
+  };
+
+  const logYAxis = {
+    type: 'logarithmic',
+    ticks: {
+      font: { size: 11 },
+      callback: v => fmtK(v),
+      autoSkip: true,
+      maxTicksLimit: 8
+    },
+    grid: { color: 'rgba(128,128,128,0.1)' }
+  };
+
+  if (tab === 'scale') {
+    destroyChart('scale');
+    charts['scale'] = new Chart(document.getElementById('chart-scale'), {
+      type: 'scatter',
+      data: { datasets: [
+        { data: logCounts.map(m => ({ x: m, y: Math.round(compute(s,m).totalOpt) })), borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.07)', showLine: true, tension: 0.3, pointRadius: 0, fill: true },
+        { data: logCounts.map(m => ({ x: m, y: Math.round(compute(s,m).totalPes) })), borderColor: '#D85A30', backgroundColor: 'rgba(216,90,48,0.05)', showLine: true, tension: 0.3, pointRadius: 0, fill: true },
+        { data: logCounts.map(m => ({ x: m, y: Math.round(compute(s,m).infraAmortOpt) })), borderColor: '#888780', backgroundColor: 'transparent', showLine: true, tension: 0.3, pointRadius: 0, borderDash: [3,3] }
+      ]},
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { x: logXAxis, y: logYAxis }
+      }
+    });
+  }
+  if (tab === 'stack') {
+    destroyChart('stack');
+    const c = compute(s, s.members);
+    charts['stack'] = new Chart(document.getElementById('chart-stack'), {
+      type: 'bar',
+      data: {
+        labels: ['Payment fees','ZK proofs','ZK verify gas','DAO gov gas','Treasury gas','Credit pool gas','Credit interest','Infra amortised'],
+        datasets: [
+          { label: 'Optimistic', data: [Math.round(c.txOpt),Math.round(c.zkOpt),Math.round(c.zkVerifyOpt),Math.round(c.daoGasOpt),Math.round(c.treasuryGasOpt),Math.round(c.creditTxOpt),Math.round(c.creditCost),Math.round(c.infraAmortOpt)], backgroundColor: ['#378ADD','#534AB7','#7F77DD','#EF9F27','#FAC775','#5DCAA5','#1D9E75','#888780'] },
+          { label: 'Pessimistic', data: [Math.round(c.txPes),Math.round(c.zkPes),Math.round(c.zkVerifyPes),Math.round(c.daoGasPes),Math.round(c.treasuryGasPes),Math.round(c.creditTxPes),Math.round(c.creditCost),Math.round(c.infraAmortPes)], backgroundColor: ['#85B7EB','#AFA9EC','#CECBF6','#FAC775','#FAEEDA','#9FE1CB','#5DCAA5','#B4B2A9'] }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { font: { size: 11 } }, grid: { display: false } },
+          y: { ticks: { callback: v => fmtK(v), font: { size: 11 } }, grid: { color: 'rgba(128,128,128,0.1)' } }
+        }
+      }
+    });
+  }
+  if (tab === 'solvency') {
+    destroyChart('solvency');
+    charts['solvency'] = new Chart(document.getElementById('chart-solvency'), {
+      type: 'scatter',
+      data: { datasets: [
+        { data: logCounts.map(m => ({ x: m, y: Math.round(compute(s,m).annualInterestIncome) })), borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.07)', showLine: true, tension: 0.3, pointRadius: 0, fill: true },
+        { data: logCounts.map(m => ({ x: m, y: Math.round(compute(s,m).annualDefaultLoss) })),  borderColor: '#D85A30', backgroundColor: 'rgba(216,90,48,0.07)', showLine: true, tension: 0.3, pointRadius: 0, fill: true },
+        { data: logCounts.map(m => ({ x: m, y: Math.round(compute(s,m).poolSurplus) })), borderColor: '#534AB7', backgroundColor: 'transparent', showLine: true, tension: 0.3, pointRadius: 0, borderDash: [4,3] }
+      ]},
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { x: logXAxis, y: logYAxis }
+      }
+    });
+  }
+  if (tab === 'trad') {
+    destroyChart('trad');
+    const tradCost = s.income * 0.20 + s.income * 0.029 + s.income * s.util * 0.22 + 240;
+    charts['trad'] = new Chart(document.getElementById('chart-trad'), {
+      type: 'scatter',
+      data: { datasets: [
+        { data: logCounts.map(m => ({ x: m, y: Math.round(tradCost) })), borderColor: '#D85A30', backgroundColor: 'rgba(216,90,48,0.07)', showLine: true, tension: 0, pointRadius: 0, fill: true, borderDash: [4,3] },
+        { data: logCounts.map(m => ({ x: m, y: Math.round(compute(s,m).totalOpt) })), borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.08)', showLine: true, tension: 0.3, pointRadius: 0, fill: true },
+        { data: logCounts.map(m => ({ x: m, y: Math.round(compute(s,m).totalPes) })), borderColor: '#5DCAA5', backgroundColor: 'transparent', showLine: true, tension: 0.3, pointRadius: 0 }
+      ]},
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { x: logXAxis, y: logYAxis }
+      }
+    });
+  }
+}
+
+function switchTab(tab, event) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  ['scale','stack','trad','solvency'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === tab ? '' : 'none';
+  });
+  activeTab = tab;
+  renderChart(tab);
+}
+
+function update() {
+  const s = getSliders();
+  const c = compute(s, s.members);
+
+  document.getElementById('o-income').textContent = '$' + (s.income/1000).toFixed(0) + 'k';
+  document.getElementById('o-jobs').textContent = s.jobs;
+  document.getElementById('o-draws').textContent = s.draws;
+  document.getElementById('o-util').textContent = Math.round(s.util*100) + '%';
+  document.getElementById('o-votes').textContent = s.votes;
+  document.getElementById('o-members').textContent = s.members.toLocaleString();
+  document.getElementById('o-baserate').textContent = (s.baserate*100).toFixed(1) + '%';
+  document.getElementById('o-riskprem').textContent = (s.riskprem*100).toFixed(1) + '%';
+  document.getElementById('o-riskscale').textContent = Math.round(s.riskscale*100) + '%';
+  document.getElementById('o-healthadj').textContent = (s.healthadj*100).toFixed(1) + '%';
+  document.getElementById('o-defaultrate').textContent = (s.defaultrate*100).toFixed(1) + '%';
+  document.getElementById('o-recovery').textContent = Math.round(s.recovery*100) + '%';
+  document.getElementById('o-recovlag').textContent = s.recovlag.toFixed(1) + ' yrs';
+
+  const panel = document.getElementById('solvency-panel');
+  const badge = document.getElementById('solvency-badge');
+  if (c.poolIsSolvent) {
+    panel.style.background = '#E1F5EE'; panel.style.borderColor = '#1D9E75';
+    badge.style.background = '#1D9E75'; badge.style.color = '#fff';
+    badge.textContent = 'solvent';
+  } else {
+    panel.style.background = '#FCEBEB'; panel.style.borderColor = '#E24B4A';
+    badge.style.background = '#E24B4A'; badge.style.color = '#fff';
+    badge.textContent = 'insolvent';
+  }
+  document.getElementById('sol-income').textContent = fmtV(c.annualInterestIncome);
+  document.getElementById('sol-loss').textContent = fmtV(c.annualDefaultLoss);
+  document.getElementById('sol-surplus').textContent = fmtV(Math.abs(c.poolSurplus)) + (c.poolIsSolvent ? ' surplus' : ' shortfall');
+  document.getElementById('sol-surplus').style.color = c.poolIsSolvent ? '#1D9E75' : '#D85A30';
+  document.getElementById('sol-minrate').textContent = (c.solventRateNeeded * 100).toFixed(2) + '%';
+
+  document.getElementById('m-overhead').textContent = fmtR(c.overheadOpt, c.overheadPes);
+  document.getElementById('m-credit').textContent = fmtV(c.creditCost);
+  document.getElementById('m-effrate-sub').textContent = 'effective rate ' + (c.effectiveRate*100).toFixed(2) + '% — base ' + (s.baserate*100).toFixed(1) + '% + risk ' + (c.effectiveRiskPrem*100).toFixed(2) + '% + health ' + (s.healthadj*100).toFixed(1) + '%';
+  document.getElementById('m-opt').textContent = fmtV(c.totalOpt);
+  document.getElementById('m-pes').textContent = fmtV(c.totalPes);
+
+  const creditVolume = s.income * s.util;
+  document.getElementById('b-tx').textContent = fmtR(c.txOpt, c.txPes);
+  document.getElementById('b-zk').textContent = fmtR(c.zkOpt, c.zkPes);
+  document.getElementById('b-zkverify').textContent = fmtR(c.zkVerifyOpt, c.zkVerifyPes);
+  document.getElementById('b-dao').textContent = fmtR(c.daoGasOpt, c.daoGasPes);
+  document.getElementById('b-treasury').textContent = fmtR(c.treasuryGasOpt, c.treasuryGasPes);
+  document.getElementById('b-creditgas').textContent = fmtR(c.creditTxOpt, c.creditTxPes);
+  document.getElementById('b-colonyfee').textContent = fmtR(c.colonyFeeOpt, c.colonyFeePes);
+  document.getElementById('b-infra').textContent = fmtR(c.infraAmortOpt, c.infraAmortPes);
+  document.getElementById('b-wallet').textContent = fmtR(c.walletOpt, c.walletPes);
+  document.getElementById('b-ramp').textContent = fmtR(c.rampOpt, c.rampPes);
+  document.getElementById('b-paymaster').textContent = fmtR(c.paymasterOpt, c.paymasterPes);
+  document.getElementById('b-overhead').textContent = fmtR(c.overheadOpt, c.overheadPes);
+  document.getElementById('b-credbase').textContent = fmtV(creditVolume * s.baserate);
+  document.getElementById('b-credrisk').textContent = fmtV(creditVolume * c.effectiveRiskPrem);
+  document.getElementById('b-credhealth').textContent = fmtV(creditVolume * s.healthadj);
+  document.getElementById('b-credtotal').textContent = fmtV(c.creditCost);
+  document.getElementById('b-total').textContent = fmtR(c.totalOpt, c.totalPes);
+
+  document.getElementById('n-dao').textContent = fmtR(c.dao.infraOpt, c.dao.infraPes);
+  const auditOpt = COMPONENTS.credit[selected.credit].auditOpt;
+  const auditPes = COMPONENTS.credit[selected.credit].auditPes;
+  document.getElementById('n-audit').textContent = fmtR(auditOpt/5, auditPes/5) + '/yr';
+  document.getElementById('n-rpc').textContent = fmtR(c.rpcOpt, c.rpcPes);
+  document.getElementById('n-legal').textContent = fmtR(c.legalOpt, c.legalPes);
+  document.getElementById('n-total').textContent = fmtR(c.networkInfraOptTotal, c.networkInfraPesTotal);
+  document.getElementById('n-amort').textContent = fmtR(c.infraAmortOpt, c.infraAmortPes);
+
+  updateWarnings();
+  renderChart(activeTab);
+}
+
+document.querySelectorAll('input[type=range]').forEach(el => el.addEventListener('input', update));
+update();
+</script>
+
+<div style="margin-top: 3rem; border-top: 0.5px solid #ddd; padding-top: 2rem;">
+<div class="section-label">model assumptions</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem;">
+
+<div style="background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 14px 16px;">
+<div style="font-size: 12px; font-weight: 500; margin-bottom: 10px; color: #1a1a1a;">Worker profile</div>
+<div style="font-size: 12px; color: #444; line-height: 1.7;">
+<b>Credit volume</b> is modelled as a fixed percentage of annual income (utilization slider). This implies credit needs scale proportionally with earnings, which is a simplification — in practice, cash flow gaps are driven by job size and timing, not income level directly.<br><br>
+<b>Jobs per year</b> is assumed to be evenly distributed across the year with no seasonality.<br><br>
+<b>Credit draws</b> are assumed to be equal in size and evenly spaced. In practice draw sizes and timing will vary significantly.<br><br>
+<b>All members</b> are assumed to have the same income, job frequency, and credit behaviour. The model represents a single archetypal member, not a distribution.
+</div>
+</div>
+
+<div style="background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 14px 16px;">
+<div style="font-size: 12px; font-weight: 500; margin-bottom: 10px; color: #1a1a1a;">Transaction &amp; gas costs</div>
+<div style="font-size: 12px; color: #444; line-height: 1.7;">
+<b>Payment tx fees</b> for crypto rails use flat per-transaction estimates based on typical L2 gas prices as of 2024–25. Actual gas costs fluctuate with network congestion and may be higher during peak periods.<br><br>
+<b>ZK proof generation costs</b> (Reclaim, zkPass, TLSNotary) are estimated ranges based on comparable ZK compute benchmarks. None of these protocols have fixed public pricing; treat pessimistic values as planning floors.<br><br>
+<b>ZK on-chain verification gas</b> is estimated at $0.08–$0.60 per proof submission, reflecting the higher computational cost of verifying ZK proofs versus simple token transfers.<br><br>
+<b>Credit pool tx gas</b> assumes two on-chain transactions per draw (draw + repayment) at $0.05–$0.40 each.<br><br>
+<b>Treasury disbursement gas</b> assumes one treasury transaction per four governance votes at $0.10–$0.50 each.<br><br>
+<b>ZK attestation proofs</b> are assumed to be generated twice per year per member (annual re-attestation plus one additional).
+</div>
+</div>
+
+<div style="background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 14px 16px;">
+<div style="font-size: 12px; font-weight: 500; margin-bottom: 10px; color: #1a1a1a;">Credit rate model</div>
+<div style="font-size: 12px; color: #444; line-height: 1.7;">
+<b>Base rate</b> is a fixed annual cost covering pool liquidity overhead and operating costs. It does not vary with membership size.<br><br>
+<b>Risk premium</b> starts at the value set for 100 members and decays linearly toward zero as membership grows, at a rate set by the scale-down slider. This models the improving information advantage the network gains as its income dataset grows. The floor is zero — the risk premium cannot go negative.<br><br>
+<b>Pool health adjustment</b> is a flat governance-set buffer rate. In a real system this would be raised automatically when default rates exceed a threshold; here it is a manual input.<br><br>
+<b>Effective rate</b> = base rate + (risk premium × scale factor) + health adjustment, applied to credit volume annually. No compounding is modelled — this is a simple annual interest approximation.<br><br>
+<b>Default risk</b> is not explicitly modelled as a cost line. It is implicitly priced into the risk premium. The model does not simulate actual default events or pool drawdowns.
+</div>
+</div>
+
+<div style="background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 14px 16px;">
+<div style="font-size: 12px; font-weight: 500; margin-bottom: 10px; color: #1a1a1a;">Network-level costs</div>
+<div style="font-size: 12px; color: #444; line-height: 1.7;">
+<b>Smart contract audits</b> are amortised over 5 years regardless of network growth rate. A faster-growing network would amortise this sooner; a stagnant one more slowly.<br><br>
+<b>Aave fork audits</b> are assumed to require only a partial audit of modifications rather than a full codebase review. In practice, auditors often review the full system in context, which may push costs toward the custom pool range.<br><br>
+<b>RPC / node infrastructure</b> is modelled as a base hosting cost plus a per-transaction throughput term: optimistic $600 + (members × jobs × $0.00008), pessimistic $1,200 + (members × jobs × $0.00025).<br><br>
+<b>Legal / compliance costs</b> are modelled as a linear function of membership: optimistic $2,000 + ($1.50 × members), pessimistic $5,000 + ($4.00 × members). In reality legal costs are highly jurisdiction-dependent and may step up nonlinearly at regulatory thresholds.<br><br>
+<b>All network costs</b> are divided equally across members. This assumes uniform cost allocation, which may not reflect a real cooperative's fee structure.
+</div>
+</div>
+
+<div style="background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 14px 16px;">
+<div style="font-size: 12px; font-weight: 500; margin-bottom: 10px; color: #1a1a1a;">What is not modelled</div>
+<div style="font-size: 12px; color: #444; line-height: 1.7;">
+<b>Pool liquidity reserves</b> — the network must hold capital against simultaneous draws. The cost of holding these reserves (opportunity cost or explicit reserve funding) is not included.<br><br>
+<b>Onboarding costs</b> — the cost of bringing new members onto the platform (KYC-equivalent, initial attestation, onboarding support) is not modelled.<br><br>
+<b>Token volatility</b> — if the network uses a native token for governance or fee payment, token price volatility could materially affect real costs. All costs here are modelled in USD equivalents.<br><br>
+<b>Regulatory compliance costs specific to financial services</b> — operating a mutual credit network may trigger money transmission licensing requirements in some jurisdictions. These costs are not captured beyond the general legal/compliance line.<br><br>
+<b>Development and maintenance costs</b> — the cost of building and maintaining the platform software is not included. This is a significant real cost, particularly in early stages.<br><br>
+<b>Member support and dispute resolution</b> — the operational cost of running Kleros-based or peer-based dispute resolution processes is not modelled.
+</div>
+</div>
+
+<div style="background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 14px 16px;">
+<div style="font-size: 12px; font-weight: 500; margin-bottom: 10px; color: #1a1a1a;">Traditional stack comparison</div>
+<div style="font-size: 12px; color: #444; line-height: 1.7;">
+<b>Platform fee</b> is fixed at 20% of income, representing a typical marketplace rate (Upwork, Angi, Thumbtack). Actual rates vary by platform and worker tier.<br><br>
+<b>Payment processing</b> is fixed at 2.9% of income, representing Stripe's standard rate. ACH transfers are cheaper; card processing may be higher.<br><br>
+<b>Credit interest</b> is fixed at 22% on the credit volume, representing a typical small business credit card or short-term loan rate. Invoice financing rates vary widely.<br><br>
+<b>Banking fees</b> are fixed at $240/year, representing a typical small business checking account fee. This does not include wire fees, overdraft fees, or other incidental costs.<br><br>
+The traditional stack total is a flat line — it does not benefit from network scale effects, which is a key structural advantage of the cooperative model being shown.
+</div>
+</div>
+
+</div>
+</div>
+
+</body>
+</html>
