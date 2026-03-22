@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Etsy vs Dotcommon — Seller Cost Model</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #0c0e14;
+  --bg-raised:  #13151e;
+  --bg-card:    #191c27;
+  --bg-card2:   #1e2130;
+  --border:     #252836;
+  --border-mid: #323548;
+  --text:       #dde1f0;
+  --text-mid:   #8b90a8;
+  --text-dim:   #555a70;
+  --etsy:       #f56400;
+  --etsy-dim:   #2a1800;
+  --etsy-mid:   #7a3200;
+  --coop:       #2dd4a0;
+  --coop-dim:   #0a2820;
+  --coop-mid:   #0f6648;
+  --save:       #60b8ff;
+  --save-dim:   #0a1e30;
+  --amber:      #f0b840;
+  --amber-dim:  #261e08;
+  --red:        #f06060;
+  --mono:       'DM Mono', monospace;
+  --sans:       'DM Sans', sans-serif;
+}
+
+html { background: var(--bg); }
+body { font-family: var(--sans); font-weight: 300; background: var(--bg); color: var(--text); padding: 2rem; max-width: 1040px; margin: 0 auto; }
+
+/* Header */
+.header { margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+.header-top { display: flex; align-items: baseline; gap: 16px; margin-bottom: 6px; }
+h1 { font-family: var(--mono); font-size: 18px; font-weight: 500; color: var(--text); letter-spacing: -0.02em; }
+.vs-badge { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 3px; background: var(--border); color: var(--text-dim); letter-spacing: 0.08em; }
+.subtitle { font-size: 13px; color: var(--text-mid); }
+
+/* Section labels */
+.section { margin-bottom: 1.5rem; }
+.section-label { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--text-dim); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* Sliders */
+.slider-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; }
+.slider-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+.slider-label { font-size: 12px; color: var(--text-mid); flex: 1; min-width: 0; }
+.slider-val { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--text); min-width: 72px; text-align: right; }
+input[type=range] { width: 100px; flex-shrink: 0; accent-color: var(--coop); cursor: pointer; }
+
+/* Toggles */
+.toggle-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+.toggle-label { font-size: 12px; color: var(--text-mid); flex: 1; }
+.toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-track { position: absolute; inset: 0; background: var(--border-mid); border-radius: 10px; cursor: pointer; transition: background 0.2s; }
+.toggle input:checked + .toggle-track { background: var(--coop-mid); }
+.toggle-track::after { content: ''; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; background: var(--text-dim); border-radius: 50%; transition: transform 0.2s, background 0.2s; }
+.toggle input:checked + .toggle-track::after { transform: translateX(16px); background: var(--coop); }
+
+/* Scenario pills */
+.scenario-row { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+.scenario-pill { font-family: var(--mono); font-size: 11px; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-mid); color: var(--text-dim); cursor: pointer; transition: all 0.15s; background: none; }
+.scenario-pill:hover { border-color: var(--coop-mid); color: var(--text-mid); }
+.scenario-pill.active { border-color: var(--coop); color: var(--coop); background: var(--coop-dim); }
+
+/* Headline metrics */
+.headline-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1.5rem; }
+.metric-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.metric-card.etsy { border-color: var(--etsy-mid); background: var(--etsy-dim); }
+.metric-card.coop { border-color: var(--coop-mid); background: var(--coop-dim); }
+.metric-card.save { border-color: #1a3a5c; background: var(--save-dim); }
+.metric-label { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; letter-spacing: 0.03em; }
+.metric-val { font-family: var(--mono); font-size: 22px; font-weight: 500; line-height: 1; }
+.metric-val.etsy { color: var(--etsy); }
+.metric-val.coop { color: var(--coop); }
+.metric-val.save { color: var(--save); }
+.metric-sub { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 5px; }
+
+/* Two column breakdown */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem; }
+.breakdown-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.breakdown-card.etsy { border-top: 2px solid var(--etsy); }
+.breakdown-card.coop { border-top: 2px solid var(--coop); }
+.breakdown-header { font-family: var(--mono); font-size: 11px; font-weight: 500; margin-bottom: 12px; letter-spacing: 0.06em; }
+.breakdown-header.etsy { color: var(--etsy); }
+.breakdown-header.coop { color: var(--coop); }
+
+.brow { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; padding: 4px 0; border-bottom: 1px solid var(--border); color: var(--text-mid); gap: 8px; }
+.brow:last-child { border-bottom: none; }
+.brow.subtotal { border-top: 1px solid var(--border-mid); margin-top: 2px; padding-top: 6px; border-bottom: none; }
+.brow.subtotal span:first-child { font-weight: 500; color: var(--text); }
+.brow.total { border-top: 2px solid var(--border-mid); margin-top: 4px; padding-top: 8px; border-bottom: none; font-weight: 500; font-size: 13px; color: var(--text); }
+.brow.benefit { color: var(--coop-mid); font-style: italic; }
+.brow.warn { color: var(--amber); }
+.bval { font-family: var(--mono); font-size: 11px; color: var(--text); white-space: nowrap; }
+.bval.etsy { color: var(--etsy); }
+.bval.coop { color: var(--coop); }
+.bval.dim { color: var(--text-dim); }
+.bval.benefit { color: var(--coop-mid); }
+.bval.warn { color: var(--amber); }
+.section-divider { font-family: var(--mono); font-size: 10px; color: var(--text-dim); padding: 8px 0 3px; border-bottom: none; letter-spacing: 0.08em; }
+
+/* Tabs */
+.tabs { display: flex; gap: 0; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.tab { font-family: var(--mono); font-size: 11px; padding: 6px 14px; border: none; background: none; cursor: pointer; color: var(--text-dim); border-bottom: 2px solid transparent; margin-bottom: -1px; letter-spacing: 0.04em; transition: color 0.15s; }
+.tab:hover { color: var(--text-mid); }
+.tab.active { color: var(--coop); border-bottom-color: var(--coop); }
+
+/* Chart */
+.chart-wrap { position: relative; width: 100%; }
+.legend-row { display: flex; gap: 16px; margin-bottom: 8px; font-size: 11px; color: var(--text-mid); flex-wrap: wrap; }
+.ld { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+
+/* 5-year projection panel */
+.projection-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1rem; }
+.proj-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.proj-label { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+.proj-val { font-family: var(--mono); font-size: 16px; font-weight: 500; color: var(--save); }
+.proj-sub { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 3px; }
+
+/* Warning box */
+.warn-box { background: var(--amber-dim); border: 1px solid var(--amber); border-radius: 8px; padding: 8px 12px; font-size: 11px; color: var(--amber); margin-bottom: 10px; line-height: 1.6; }
+
+/* Assumptions */
+.assumptions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.assumption-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.assumption-title { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text-mid); margin-bottom: 8px; letter-spacing: 0.06em; }
+.assumption-body { font-size: 12px; color: var(--text-dim); line-height: 1.7; }
+.assumption-body b { color: var(--text-mid); font-weight: 500; }
+
+@media (max-width: 640px) {
+  .headline-grid, .two-col, .slider-grid, .assumptions-grid, .projection-grid { grid-template-columns: 1fr; }
+  input[type=range] { width: 80px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <h1>seller cost model</h1>
+    <span class="vs-badge">ETSY vs DOTCOMMON</span>
+  </div>
+  <p class="subtitle">Excluded from comparison: shipping postage, cost of goods, photography, packaging, income tax, customer service time. These costs are identical on both platforms.</p>
+</div>
+
+<!-- SELLER PROFILE -->
+<div class="section">
+  <div class="section-label">seller profile</div>
+  <div class="slider-grid">
+    <div class="slider-row"><span class="slider-label">Annual gross merchandise volume ($)</span><input type="range" min="1000" max="200000" step="1000" value="30000" id="s-gmv"><span class="slider-val" id="o-gmv">$30k</span></div>
+    <div class="slider-row"><span class="slider-label">Average sale price ($)</span><input type="range" min="5" max="500" step="5" value="45" id="s-avgprice"><span class="slider-val" id="o-avgprice">$45</span></div>
+    <div class="slider-row"><span class="slider-label">Active listings</span><input type="range" min="10" max="1000" step="10" value="100" id="s-listings"><span class="slider-val" id="o-listings">100</span></div>
+    <div class="slider-row"><span class="slider-label">Avg. months for listing to sell</span><input type="range" min="0.5" max="12" step="0.5" value="3" id="s-listagemonths"><span class="slider-val" id="o-listagemonths">3 mo</span></div>
+    <div class="slider-row"><span class="slider-label">% of GMV via Offsite Ads</span><input type="range" min="0" max="60" step="5" value="25" id="s-oapct"><span class="slider-val" id="o-oapct">25%</span></div>
+    <div class="slider-row"><span class="slider-label">Refund / return rate (%)</span><input type="range" min="0" max="15" step="0.5" value="2" id="s-refund"><span class="slider-val" id="o-refund">2%</span></div>
+  </div>
+</div>
+
+<!-- ETSY OPTIONS -->
+<div class="section">
+  <div class="section-label">etsy options</div>
+  <div class="slider-grid">
+    <div class="toggle-row">
+      <span class="toggle-label">Etsy Plus subscription ($10/mo)</span>
+      <label class="toggle"><input type="checkbox" id="t-etsyplus"><span class="toggle-track"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Pattern website ($15/mo)</span>
+      <label class="toggle"><input type="checkbox" id="t-pattern"><span class="toggle-track"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Use Etsy shipping label discount</span>
+      <label class="toggle"><input type="checkbox" id="t-shiplabel" checked><span class="toggle-track"></span></label>
+    </div>
+  </div>
+</div>
+
+<!-- DOTCOMMON OPTIONS -->
+<div class="section">
+  <div class="section-label">dotcommon options</div>
+  <div class="slider-grid">
+    <div class="slider-row"><span class="slider-label">Annual membership fee ($)</span><input type="range" min="50" max="500" step="25" value="100" id="s-membership"><span class="slider-val" id="o-membership">$100</span></div>
+    <div class="slider-row"><span class="slider-label">Fiat ramp rate (% per conversion)</span><input type="range" min="0.5" max="2.5" step="0.1" value="1.0" id="s-ramp"><span class="slider-val" id="o-ramp">1.0%</span></div>
+    <div class="slider-row"><span class="slider-label">Current network size (members)</span><input type="range" min="100" max="50000" step="100" value="1000" id="s-netsize"><span class="slider-val" id="o-netsize">1,000</span></div>
+    <div class="slider-row"><span class="slider-label">Stake half-life (years)</span><input type="range" min="1" max="10" step="0.5" value="4" id="s-halflife"><span class="slider-val" id="o-halflife">4 yrs</span></div>
+    <div class="slider-row"><span class="slider-label">Avg member tenure (years)</span><input type="range" min="0.5" max="10" step="0.5" value="2" id="s-tenure"><span class="slider-val" id="o-tenure">2 yrs</span></div>
+    <div class="slider-row"><span class="slider-label">Network fixed operating costs ($/yr)</span><input type="range" min="5000" max="200000" step="5000" value="20000" id="s-fixedcosts"><span class="slider-val" id="o-fixedcosts">$20k</span></div>
+    <div class="slider-row"><span class="slider-label">Variable cost per member ($/yr)</span><input type="range" min="0" max="30" step="1" value="10" id="s-varcost"><span class="slider-val" id="o-varcost">$10</span></div>
+    <div class="slider-row"><span class="slider-label">Est. cost per sale to replace OA traffic ($)</span><input type="range" min="1" max="40" step="1" value="8" id="s-adcost"><span class="slider-val" id="o-adcost">$8</span></div>
+    <div class="toggle-row">
+      <span class="toggle-label">Replicate Offsite Ads traffic independently</span>
+      <label class="toggle"><input type="checkbox" id="t-replaceads"><span class="toggle-track"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Include tax admin software cost ($228/yr)</span>
+      <label class="toggle"><input type="checkbox" id="t-taxadmin" checked><span class="toggle-track"></span></label>
+    </div>
+  </div>
+</div>
+
+<!-- WARN AREA -->
+<div id="warn-area"></div>
+
+<!-- HEADLINE METRICS -->
+<div class="section-label">annual cost comparison</div>
+<div class="headline-grid">
+  <div class="metric-card etsy">
+    <div class="metric-label">Etsy annual cost</div>
+    <div class="metric-val etsy" id="m-etsy-total">—</div>
+    <div class="metric-sub" id="m-etsy-rate">— % of GMV</div>
+  </div>
+  <div class="metric-card coop">
+    <div class="metric-label">Dotcommon annual cost</div>
+    <div class="metric-val coop" id="m-coop-total">—</div>
+    <div class="metric-sub" id="m-coop-rate">— % of GMV</div>
+  </div>
+  <div class="metric-card save">
+    <div class="metric-label">Annual saving</div>
+    <div class="metric-val save" id="m-saving">—</div>
+    <div class="metric-sub" id="m-saving-pct">— % cheaper</div>
+  </div>
+  <div class="metric-card" style="border-color:#2a1a5c;background:#0e0a1e;">
+    <div class="metric-label">Break-even membership</div>
+    <div class="metric-val" style="color:#a080ff;" id="m-breakeven">—</div>
+    <div class="metric-sub" id="m-breakeven-sub">months to recover fee</div>
+  </div>
+</div>
+
+<!-- BREAKDOWN TABLES -->
+<div class="two-col">
+  <div class="breakdown-card etsy">
+    <div class="breakdown-header etsy">ETSY — per line item</div>
+
+    <div class="brow section-divider"><span>— mandatory fees —</span></div>
+    <div class="brow"><span>Listing fees (initial + renewals)</span><span class="bval etsy" id="b-listing">—</span></div>
+    <div class="brow"><span>Transaction fee (6.5% of GMV)</span><span class="bval etsy" id="b-txfee">—</span></div>
+    <div class="brow"><span>Payment processing (3% + $0.25/tx)</span><span class="bval etsy" id="b-payment">—</span></div>
+    <div class="brow"><span>Refund processing credit</span><span class="bval dim" id="b-refund">—</span></div>
+
+    <div class="brow section-divider"><span>— offsite ads —</span></div>
+    <div class="brow"><span>Offsite Ads fee (12–15% on attributed GMV)</span><span class="bval etsy" id="b-oa">—</span></div>
+
+    <div class="brow section-divider"><span>— optional subscriptions —</span></div>
+    <div class="brow"><span>Etsy Plus ($10/mo)</span><span class="bval" id="b-etsyplus">—</span></div>
+    <div class="brow"><span>Pattern website ($15/mo)</span><span class="bval" id="b-pattern">—</span></div>
+
+    <div class="brow section-divider"><span>— benefits (cost offsets) —</span></div>
+    <div class="brow benefit"><span>Shipping label discount (est.)</span><span class="bval benefit" id="b-shiplabel">—</span></div>
+    <div class="brow benefit"><span>Sales tax remittance (est. value)</span><span class="bval benefit" id="b-taxremit">—</span></div>
+
+    <div class="brow total"><span>Total Etsy cost</span><span class="bval etsy" id="b-etsy-total">—</span></div>
+    <div class="brow subtotal"><span>Effective take rate</span><span class="bval etsy" id="b-etsy-rate">—</span></div>
+  </div>
+
+  <div class="breakdown-card coop">
+    <div class="breakdown-header coop">DOTCOMMON — per line item</div>
+
+    <div class="brow section-divider"><span>— membership —</span></div>
+    <div class="brow"><span>Annual flat membership fee</span><span class="bval coop" id="c-membership">—</span></div>
+
+    <div class="brow section-divider"><span>— payment infrastructure —</span></div>
+    <div class="brow"><span>L2 gas (payment + escrow txs)</span><span class="bval coop" id="c-gas">—</span></div>
+    <div class="brow"><span>Fiat ramp (×2 in/out conversion)</span><span class="bval coop" id="c-ramp">—</span></div>
+
+    <div class="brow section-divider"><span>— operational costs (differential) —</span></div>
+    <div class="brow warn"><span>Tax admin software (TaxJar ~$228/yr)</span><span class="bval warn" id="c-taxadmin">—</span></div>
+    <div class="brow warn"><span>Independent ad spend (if replacing OA)</span><span class="bval warn" id="c-adspend">—</span></div>
+
+    <div class="brow section-divider"><span>— benefits —</span></div>
+    <div class="brow benefit"><span>Participation stake dividend (est.)</span><span class="bval benefit" id="c-dividend">—</span></div>
+
+    <div class="brow total"><span>Total Dotcommon cost</span><span class="bval coop" id="c-coop-total">—</span></div>
+    <div class="brow subtotal"><span>Effective take rate</span><span class="bval coop" id="c-coop-rate">—</span></div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('cost',event)">Cost vs GMV</button>
+  <button class="tab" onclick="switchTab('stack',event)">Fee stack</button>
+  <button class="tab" onclick="switchTab('oa',event)">Offsite Ads sensitivity</button>
+  <button class="tab" onclick="switchTab('projection',event)">5-year projection</button>
+</div>
+
+<div id="tab-cost">
+  <div class="legend-row">
+    <span><span class="ld" style="background:var(--etsy);"></span>Etsy total cost</span>
+    <span><span class="ld" style="background:var(--coop);"></span>Dotcommon total cost</span>
+    <span><span class="ld" style="background:var(--save);opacity:0.6;"></span>Annual saving</span>
+  </div>
+  <div class="chart-wrap" style="height:280px;"><canvas id="chart-cost"></canvas></div>
+</div>
+
+<div id="tab-stack" style="display:none;">
+  <div class="legend-row">
+    <span><span class="ld" style="background:#f56400;"></span>Listing fees</span>
+    <span><span class="ld" style="background:#ff8c40;"></span>Transaction fee</span>
+    <span><span class="ld" style="background:#ffb380;"></span>Payment processing</span>
+    <span><span class="ld" style="background:#cc3300;"></span>Offsite Ads</span>
+    <span><span class="ld" style="background:#882200;"></span>Subscriptions</span>
+    <span><span class="ld" style="background:var(--coop);"></span>Dotcommon total</span>
+  </div>
+  <div class="chart-wrap" style="height:300px;"><canvas id="chart-stack"></canvas></div>
+</div>
+
+<div id="tab-oa" style="display:none;">
+  <div class="legend-row">
+    <span><span class="ld" style="background:var(--etsy);"></span>Etsy cost (varies with OA%)</span>
+    <span><span class="ld" style="background:var(--coop);"></span>Dotcommon cost (flat)</span>
+    <span><span class="ld" style="background:var(--save);opacity:0.6;"></span>Saving</span>
+  </div>
+  <p style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">X-axis: % of GMV attributed to Offsite Ads (0–60%). Dotcommon cost is flat — it does not vary with ad attribution.</p>
+  <div class="chart-wrap" style="height:260px;"><canvas id="chart-oa"></canvas></div>
+</div>
+
+<div id="tab-projection" style="display:none;">
+  <div class="section-label" style="margin-bottom:10px;">5-year cumulative projection</div>
+
+  <div style="margin-bottom:10px;">
+    <div class="scenario-row">
+      <button class="scenario-pill active" onclick="selectGrowth('conservative',this)">Conservative (20%/yr growth)</button>
+      <button class="scenario-pill" onclick="selectGrowth('moderate',this)">Moderate (40%/yr growth)</button>
+      <button class="scenario-pill" onclick="selectGrowth('optimistic',this)">Optimistic (70%/yr growth)</button>
+    </div>
+  </div>
+
+  <div class="projection-grid">
+    <div class="proj-card">
+      <div class="proj-label">5-yr cumulative fee saving</div>
+      <div class="proj-val" id="proj-saving">—</div>
+      <div class="proj-sub">vs staying on Etsy</div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-label">5-yr participation stake dividend</div>
+      <div class="proj-val" id="proj-dividend">—</div>
+      <div class="proj-sub" id="proj-dividend-sub">at selected growth rate</div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-label">5-yr total benefit</div>
+      <div class="proj-val" id="proj-total">—</div>
+      <div class="proj-sub">saving + dividend</div>
+    </div>
+  </div>
+
+  <div class="legend-row" style="margin-top:8px;">
+    <span><span class="ld" style="background:var(--etsy);"></span>Cumulative Etsy cost</span>
+    <span><span class="ld" style="background:var(--coop);"></span>Cumulative Dotcommon cost</span>
+    <span><span class="ld" style="background:var(--save);"></span>Cumulative dividend received</span>
+  </div>
+  <div class="chart-wrap" style="height:280px;"><canvas id="chart-projection"></canvas></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+Chart.defaults.color = '#555a70';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+
+let charts = {};
+let activeTab = 'cost';
+let growthRate; // assigned to GROWTH_CONSERVATIVE after constants are declared below
+
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function fmtD(amount) {
+  if (amount === 0) return '$0';
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? '-' : '';
+  if (abs >= 1000) return sign + '$' + (abs/1000).toFixed(1) + 'k';
+  return sign + '$' + Math.round(abs).toLocaleString();
+}
+function fmtV(amount) { return '$' + Math.round(Math.abs(amount)).toLocaleString(); }
+function fmtPct(amount) { return (amount*100).toFixed(1) + '%'; }
+
+function getInputs() {
+  return {
+    gmv:            +document.getElementById('s-gmv').value,
+    avgPrice:       +document.getElementById('s-avgprice').value,
+    listings:       +document.getElementById('s-listings').value,
+    listAgeMo:      +document.getElementById('s-listagemonths').value,
+    oaPct:          +document.getElementById('s-oapct').value / 100,
+    refundRate:     +document.getElementById('s-refund').value / 100,
+    etsyPlus:       document.getElementById('t-etsyplus').checked,
+    pattern:        document.getElementById('t-pattern').checked,
+    shipLabel:      document.getElementById('t-shiplabel').checked,
+    membership:     +document.getElementById('s-membership').value,
+    rampPct:        +document.getElementById('s-ramp').value / 100,
+    netSize:        +document.getElementById('s-netsize').value,
+    halfLife:       +document.getElementById('s-halflife').value,
+    tenure:         +document.getElementById('s-tenure').value,
+    fixedCosts:     +document.getElementById('s-fixedcosts').value,
+    varCost:        +document.getElementById('s-varcost').value,
+    adCostPerSale:  +document.getElementById('s-adcost').value,
+    replaceAds:     document.getElementById('t-replaceads').checked,
+    taxAdmin:       document.getElementById('t-taxadmin').checked,
+  };
+}
+
+// ─── Model constants ──────────────────────────────────────────────────────────
+// Etsy fee structure
+const ETSY_LISTING_FEE            = 0.20;   // $ per listing (initial + each renewal)
+const ETSY_LISTING_RENEWAL_MONTHS = 4;      // months between unsold-listing renewals
+const ETSY_TX_FEE_RATE            = 0.065;  // 6.5% of GMV
+const ETSY_PAYMENT_PCT            = 0.03;   // 3% of GMV (Etsy Payments processing)
+const ETSY_PAYMENT_FIXED          = 0.25;   // $0.25 per transaction (Etsy Payments)
+const ETSY_REFUND_CREDIT_RATE     = 0.095;  // tx fee (6.5%) + payment fee (3%) refunded on returns
+const ETSY_OA_THRESHOLD_GMV       = 10000;  // GMV above which OA participation is mandatory
+const ETSY_OA_RATE_BELOW          = 0.15;   // 15% OA fee below threshold (opt-out available)
+const ETSY_OA_RATE_ABOVE          = 0.12;   // 12% OA fee above threshold (mandatory)
+const ETSY_PLUS_ANNUAL_FEE        = 120;    // $10/mo × 12
+const ETSY_PATTERN_ANNUAL_FEE     = 180;    // $15/mo × 12
+const ETSY_SHIP_LABEL_SAVING_PER_TX = 2.40; // ~30% off avg $8 retail label
+const ETSY_TAX_REMIT_VALUE        = 150;    // conservative value of automatic sales tax handling
+
+// Dotcommon infrastructure
+const COOP_GAS_PER_TX             = 0.02;   // $ L2 gas per transaction (escrow + payment)
+const COOP_GAS_PER_LISTING        = 0.005;  // $ L2 gas per listing (IPFS content hash anchor)
+const COOP_RAMP_CONVERSIONS       = 2;      // fiat↔stablecoin conversions per income unit (in + out)
+const COOP_TAX_ADMIN_ANNUAL       = 228;    // $ TaxJar entry tier (differential cost vs Etsy)
+
+// Stake model
+const STAKES_PER_DOLLAR           = 1;      // stakes earned per $ of gross GMV transacted
+const STAKES_PER_GOV_VOTE         = 2;      // stakes earned per governance vote cast
+const GOV_VOTES_PER_YEAR          = 12;     // assumed governance votes per member per year
+const STAKE_HALF_LIFE_BASE        = 0.5;    // the "half" in half-life (never changes, but named for clarity)
+
+// Projection
+const SELLER_GMV_GROWTH_RATE      = 0.05;   // 5% annual GMV growth for the example seller
+const AVG_MEMBER_GMV              = 15000;  // assumed average annual GMV per network member (for network-wide stake issuance)
+const GROWTH_CONSERVATIVE         = 0.20;   // network membership growth rate — conservative scenario
+const GROWTH_MODERATE             = 0.40;   // network membership growth rate — moderate scenario
+const GROWTH_OPTIMISTIC           = 0.70;   // network membership growth rate — optimistic scenario
+const MONTHS_PER_YEAR             = 12;     // calendar constant used in listing renewal calculation
+growthRate = GROWTH_CONSERVATIVE;           // now safe to assign — constant is defined above
+// ─────────────────────────────────────────────────────────────────────────────
+
+function computeEtsy(modelInputs) {
+  const transactions = Math.round(modelInputs.gmv / modelInputs.avgPrice);
+
+  // Listing fees: flat fee per listing (initial + renewals every RENEWAL_MONTHS if unsold, plus auto-renewal on each sale)
+  const renewalsPerListing = Math.max(0, Math.floor(MONTHS_PER_YEAR / modelInputs.listAgeMo / ETSY_LISTING_RENEWAL_MONTHS));
+  const listingFees = modelInputs.listings * ETSY_LISTING_FEE * (1 + renewalsPerListing) + transactions * ETSY_LISTING_FEE;
+
+  // Transaction fee: flat rate on GMV
+  const txFee = modelInputs.gmv * ETSY_TX_FEE_RATE;
+
+  // Payment processing: percentage of GMV plus fixed fee per transaction
+  const paymentFee = modelInputs.gmv * ETSY_PAYMENT_PCT + transactions * ETSY_PAYMENT_FIXED;
+
+  // Refund credit: Etsy refunds transaction + payment fees (but not listing fee) on returns
+  const refundCredit = modelInputs.gmv * modelInputs.refundRate * ETSY_REFUND_CREDIT_RATE;
+
+  // Offsite Ads: rate depends on whether GMV crosses the mandatory-participation threshold
+  const oaRate = modelInputs.gmv < ETSY_OA_THRESHOLD_GMV ? ETSY_OA_RATE_BELOW : ETSY_OA_RATE_ABOVE;
+  const oaFee = modelInputs.gmv * modelInputs.oaPct * oaRate;
+
+  // Optional subscriptions
+  const etsyPlusFee = modelInputs.etsyPlus ? ETSY_PLUS_ANNUAL_FEE : 0;
+  const patternFee  = modelInputs.pattern  ? ETSY_PATTERN_ANNUAL_FEE : 0;
+
+  // Benefits (cost offsets)
+  const shipLabelSaving = modelInputs.shipLabel ? transactions * ETSY_SHIP_LABEL_SAVING_PER_TX : 0;
+  const taxRemitValue   = ETSY_TAX_REMIT_VALUE;
+
+  const total = listingFees + txFee + paymentFee - refundCredit + oaFee + etsyPlusFee + patternFee - shipLabelSaving - taxRemitValue;
+  const effectiveRate = total / modelInputs.gmv;
+
+  return { listingFees, txFee, paymentFee, refundCredit, oaFee, etsyPlusFee, patternFee,
+           shipLabelSaving, taxRemitValue, transactions, oaRate, total, effectiveRate };
+}
+
+function computeCoop(modelInputs, etsyResult) {
+  const transactions = etsyResult.transactions;
+
+  // Flat membership
+  const membershipFee = modelInputs.membership;
+
+  // L2 gas costs
+  const gasFee = transactions * COOP_GAS_PER_TX + modelInputs.listings * COOP_GAS_PER_LISTING;
+
+  // Fiat ramp: double conversion (inbound fiat→stablecoin + outbound stablecoin→fiat)
+  const rampFee = modelInputs.gmv * modelInputs.rampPct * COOP_RAMP_CONVERSIONS;
+
+  // Tax admin software — differential cost, Etsy handles this automatically
+  const taxAdminFee = modelInputs.taxAdmin ? COOP_TAX_ADMIN_ANNUAL : 0;
+
+  // Independent ad spend to replace Offsite Ads traffic
+  const oaTransactions = Math.round(transactions * modelInputs.oaPct);
+  const adSpend = modelInputs.replaceAds ? oaTransactions * modelInputs.adCostPerSale : 0;
+
+  // Stake half-life decay model
+  // Stakes proportional to gross GMV transacted, plus flat amount per governance vote
+  const sellerStakesPerYear = modelInputs.gmv * STAKES_PER_DOLLAR + GOV_VOTES_PER_YEAR * STAKES_PER_GOV_VOTE;
+  const decayRate = 1 - Math.pow(STAKE_HALF_LIFE_BASE, 1 / modelInputs.halfLife);
+
+  // Effective accumulated stakes: geometric series sum over tenure years with annual decay
+  const effectiveStakesPerMember = sellerStakesPerYear
+    * (1 - Math.pow(1 - decayRate, modelInputs.tenure)) / decayRate;
+
+  // Network total = all members assumed equally active as the example seller
+  const totalNetworkStakes = modelInputs.netSize * effectiveStakesPerMember;
+
+  // Example seller's stake balance = average member (representative member assumption)
+  const sellerStakes = effectiveStakesPerMember;
+
+  // Surplus pool and dividend
+  const feeRevenue = modelInputs.netSize * modelInputs.membership;
+  const operatingCosts = modelInputs.fixedCosts + modelInputs.varCost * modelInputs.netSize;
+  const surplusPool = Math.max(0, feeRevenue - operatingCosts);
+  const dividendPerStake = totalNetworkStakes > 0 ? surplusPool / totalNetworkStakes : 0;
+  const sellerOwnership = totalNetworkStakes > 0 ? sellerStakes / totalNetworkStakes : 0;
+  const dividendDisplay = surplusPool * sellerOwnership;
+
+  const total = membershipFee + gasFee + rampFee + taxAdminFee + adSpend - dividendDisplay;
+  const effectiveRate = total / modelInputs.gmv;
+
+  return { membershipFee, gasFee, rampFee, taxAdminFee, adSpend, dividendDisplay,
+           dividendPerStake, sellerStakesPerYear, sellerStakes, totalNetworkStakes,
+           sellerOwnership, surplusPool, decayRate, effectiveStakesPerMember,
+           feeRevenue, operatingCosts,
+           transactions, oaTransactions, total, effectiveRate };
+}
+
+function computeProjection(modelInputs, years) {
+  const results = [];
+  let cumulativeEtsy = 0;
+  let cumulativeCoop = 0;
+  let cumulativeDividend = 0;
+
+  // Derive initial state from current inputs
+  const annualDecayRate = 1 - Math.pow(STAKE_HALF_LIFE_BASE, 1 / modelInputs.halfLife);
+  let currentNetworkSize = modelInputs.netSize;
+
+  // Compute initial total network stakes from current inputs
+  const initialCoopCalc = computeCoop(modelInputs, computeEtsy(modelInputs));
+  let currentTotalStakes = initialCoopCalc.totalNetworkStakes;
+  let currentSellerStakes = initialCoopCalc.sellerStakes;
+
+  for (let yearIndex = 1; yearIndex <= years; yearIndex++) {
+    // Network grows at selected growthRate
+    currentNetworkSize = currentNetworkSize * (1 + growthRate);
+
+    // Seller GMV grows at defined annual rate
+    const yearGmv = modelInputs.gmv * Math.pow(1 + SELLER_GMV_GROWTH_RATE, yearIndex - 1);
+    const yearProfile = { ...modelInputs, gmv: yearGmv };
+    const yearEtsyCalc = computeEtsy(yearProfile);
+    cumulativeEtsy += yearEtsyCalc.total;
+
+    // Seller stakes this year: proportional to their grown GMV
+    const sellerYearGmv = modelInputs.gmv * Math.pow(1 + SELLER_GMV_GROWTH_RATE, yearIndex - 1);
+    const sellerStakesThisYear = sellerYearGmv * STAKES_PER_DOLLAR + GOV_VOTES_PER_YEAR * STAKES_PER_GOV_VOTE;
+
+    // Network-wide new stakes: all members assumed to transact at AVG_MEMBER_GMV
+    const avgMemberStakesPerYear = AVG_MEMBER_GMV * STAKES_PER_DOLLAR + GOV_VOTES_PER_YEAR * STAKES_PER_GOV_VOTE;
+    const newNetworkStakesThisYear = currentNetworkSize * avgMemberStakesPerYear;
+
+    // Apply decay then add new issuance
+    currentTotalStakes = currentTotalStakes * (1 - annualDecayRate) + newNetworkStakesThisYear;
+    currentSellerStakes = currentSellerStakes * (1 - annualDecayRate) + sellerStakesThisYear;
+
+    // Dotcommon cost using evolved stake state
+    const surplusPool = Math.max(0, currentNetworkSize * modelInputs.membership - modelInputs.fixedCosts - modelInputs.varCost * currentNetworkSize);
+    const dividendPerStake = currentTotalStakes > 0 ? surplusPool / currentTotalStakes : 0;
+    const sellerOwnership = currentTotalStakes > 0 ? currentSellerStakes / currentTotalStakes : 0;
+    const dividendY = surplusPool * sellerOwnership;
+
+    const yearCoopCalc = computeCoop(yearProfile, yearEtsyCalc);
+    const coopGross = yearCoopCalc.membershipFee + yearCoopCalc.gasFee + yearCoopCalc.rampFee + yearCoopCalc.taxAdminFee + yearCoopCalc.adSpend;
+    cumulativeCoop += coopGross;
+    cumulativeDividend += dividendY;
+
+    results.push({
+      year: yearIndex,
+      netSizeY: Math.round(currentNetworkSize),
+      totalStakesY: Math.round(currentTotalStakes),
+      sellerStakesY: Math.round(currentSellerStakes),
+      sellerOwnership: sellerOwnership,
+      dividendPerStake: dividendPerStake,
+      dividendThisYear: Math.round(dividendY),
+      etsyCumulative: Math.round(cumulativeEtsy),
+      coopCumulative: Math.round(cumulativeCoop),
+      dividendCumulative: Math.round(cumulativeDividend),
+      netCoop: Math.round(cumulativeCoop - cumulativeDividend),
+      saving: Math.round(cumulativeEtsy - (cumulativeCoop - cumulativeDividend)),
+    });
+  }
+  return results;
+}
+
+function renderChart(tab) {
+  const modelInputs = getInputs();
+  const etsyCalc = computeEtsy(modelInputs);
+  const coopCalc = computeCoop(modelInputs, etsyCalc);
+
+  if (tab === 'cost') {
+    const gmvPoints = [];
+    for (let gmvPoint = 1000; gmvPoint <= 200000; gmvPoint += 2000) gmvPoints.push(gmvPoint);
+    const etsyCostData = gmvPoints.map(gmvPoint => { const pointProfile={...modelInputs,gmv:gmvPoint}; const e=computeEtsy(pointProfile); return {x:gmvPoint,y:Math.round(e.total)}; });
+    const coopCostData = gmvPoints.map(gmvPoint => { const pointProfile={...modelInputs,gmv:gmvPoint}; const e=computeEtsy(pointProfile); const c=computeCoop(pointProfile,e); return {x:gmvPoint,y:Math.round(c.total)}; });
+    const savingData = gmvPoints.map(gmvPoint => { const pointProfile={...modelInputs,gmv:gmvPoint}; const e=computeEtsy(pointProfile); const c=computeCoop(pointProfile,e); return {x:gmvPoint,y:Math.max(0,Math.round(e.total-c.total))}; });
+    if (charts['cost']) {
+      charts['cost'].data.datasets[0].data = etsyCostData;
+      charts['cost'].data.datasets[1].data = coopCostData;
+      charts['cost'].data.datasets[2].data = savingData;
+      charts['cost'].update();
+    } else {
+      charts['cost'] = new Chart(document.getElementById('chart-cost'), {
+        type: 'line',
+        data: { datasets: [
+          { label: 'Etsy', data: etsyCostData, borderColor: '#f56400', backgroundColor: 'rgba(245,100,0,0.08)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
+          { label: 'Dotcommon', data: coopCostData, borderColor: '#2dd4a0', backgroundColor: 'rgba(45,212,160,0.06)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
+          { label: 'Saving', data: savingData, borderColor: 'rgba(96,184,255,0.5)', backgroundColor: 'rgba(96,184,255,0.05)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,3] },
+        ]},
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+          scales: {
+            x: { type: 'linear', ticks: { callback: v => v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v, font:{size:10} }, title:{display:true,text:'Annual GMV ($)',color:'#555a70',font:{size:10}} },
+            y: { ticks: { callback: v => v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v, font:{size:10} } }
+          }
+        }
+      });
+    }
+  }
+
+  if (tab === 'stack') {
+    const feeStackData = [Math.round(etsyCalc.listingFees),Math.round(etsyCalc.txFee),Math.round(etsyCalc.paymentFee),Math.round(etsyCalc.oaFee),Math.round(etsyCalc.etsyPlusFee+etsyCalc.patternFee),Math.round(coopCalc.total)];
+    if (charts['stack']) {
+      charts['stack'].data.datasets[0].data = feeStackData;
+      charts['stack'].update();
+    } else {
+      charts['stack'] = new Chart(document.getElementById('chart-stack'), {
+        type: 'bar',
+        data: {
+          labels: ['Listing fees','Tx fee (6.5%)','Payment proc.','Offsite Ads','Subscriptions','Dotcommon total'],
+          datasets: [{ label: 'Cost', data: feeStackData, backgroundColor: ['#f56400','#ff8c40','#ffb380','#cc3300','#882200','#2dd4a0'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { font: { size: 10 } }, grid: { display: false } },
+            y: { ticks: { callback: v => fmtD(v), font: { size: 10 } } }
+          }
+        }
+      });
+    }
+  }
+
+  if (tab === 'oa') {
+    const oaPoints = [];
+    for (let oaPercent = 0; oaPercent <= 60; oaPercent += 2) oaPoints.push(oaPercent);
+    const coopFlatCost = coopCalc.total;
+    const etsyOaData = oaPoints.map(oaPercent => { const pointProfile={...modelInputs,oaPct:oaPercent/100}; const e=computeEtsy(pointProfile); return {x:oaPercent,y:Math.round(e.total)}; });
+    const coopFlatData = oaPoints.map(oaPercent => ({x:oaPercent,y:Math.round(coopFlatCost)}));
+    const oaSavingData = oaPoints.map(oaPercent => { const pointProfile={...modelInputs,oaPct:oaPercent/100}; const e=computeEtsy(pointProfile); return {x:oaPercent,y:Math.max(0,Math.round(e.total-coopFlatCost))}; });
+    if (charts['oa']) {
+      charts['oa'].data.datasets[0].data = etsyOaData;
+      charts['oa'].data.datasets[1].data = coopFlatData;
+      charts['oa'].data.datasets[2].data = oaSavingData;
+      charts['oa'].update();
+    } else {
+      charts['oa'] = new Chart(document.getElementById('chart-oa'), {
+        type: 'line',
+        data: { datasets: [
+          { label: 'Etsy', data: etsyOaData, borderColor: '#f56400', backgroundColor: 'rgba(245,100,0,0.08)', fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'Dotcommon', data: coopFlatData, borderColor: '#2dd4a0', backgroundColor: 'rgba(45,212,160,0.06)', fill: true, tension: 0, pointRadius: 0, borderWidth: 2 },
+          { label: 'Saving', data: oaSavingData, borderColor: 'rgba(96,184,255,0.5)', backgroundColor: 'rgba(96,184,255,0.04)', fill: true, tension: 0.2, pointRadius: 0, borderWidth: 1, borderDash:[4,3] },
+        ]},
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+          scales: {
+            x: { type: 'linear', ticks: { callback: v => v+'%', font:{size:10} }, title:{display:true,text:'% of GMV via Offsite Ads',color:'#555a70',font:{size:10}} },
+            y: { ticks: { callback: v => fmtD(v), font:{size:10} } }
+          }
+        }
+      });
+    }
+  }
+
+  if (tab === 'projection') {
+    const projectionData = computeProjection(modelInputs, 5);
+    const yearLabels = projectionData.map(yearResult => 'Year ' + yearResult.year);
+
+    // Update projection metric cards
+    const finalYear = projectionData[projectionData.length - 1];
+    document.getElementById('proj-saving').textContent = fmtD(finalYear.saving);
+    document.getElementById('proj-dividend').textContent = fmtD(finalYear.dividendCumulative);
+    document.getElementById('proj-total').textContent = fmtD(finalYear.saving + finalYear.dividendCumulative);
+
+    const etsyCumulativeData = projectionData.map(yearResult => yearResult.etsyCumulative);
+    const coopCumulativeData = projectionData.map(yearResult => yearResult.netCoop);
+    const dividendData = projectionData.map(yearResult => yearResult.dividendCumulative);
+
+    if (charts['projection']) {
+      // Update existing chart in place — avoids destroy/recreate race condition
+      charts['projection'].data.labels = yearLabels;
+      charts['projection'].data.datasets[0].data = etsyCumulativeData;
+      charts['projection'].data.datasets[1].data = coopCumulativeData;
+      charts['projection'].data.datasets[2].data = dividendData;
+      charts['projection'].update();
+    } else {
+      charts['projection'] = new Chart(document.getElementById('chart-projection'), {
+        type: 'bar',
+        data: {
+          labels: yearLabels,
+          datasets: [
+            { label: 'Cumulative Etsy cost', data: etsyCumulativeData, backgroundColor: 'rgba(245,100,0,0.7)', borderColor: '#f56400', borderWidth: 1 },
+            { label: 'Cumulative Dotcommon cost (net of dividend)', data: coopCumulativeData, backgroundColor: 'rgba(45,212,160,0.7)', borderColor: '#2dd4a0', borderWidth: 1 },
+            { label: 'Cumulative dividend received', data: dividendData, backgroundColor: 'rgba(96,184,255,0.6)', borderColor: '#60b8ff', borderWidth: 1 },
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { font: { size: 10 } }, grid: { display: false } },
+            y: { ticks: { callback: v => fmtD(v), font: { size: 10 } }, stacked: false }
+          }
+        }
+      });
+    }
+  }
+}
+
+function switchTab(tab, event) {
+  document.querySelectorAll('.tab').forEach(tabButton => tabButton.classList.remove('active'));
+  event.target.classList.add('active');
+  ['cost','stack','oa','projection'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === tab ? '' : 'none';
+  });
+  activeTab = tab;
+  renderChart(tab);
+}
+
+function selectGrowth(rate, clickedButton) {
+  document.querySelectorAll('.scenario-pill').forEach(pillButton => pillButton.classList.remove('active'));
+  clickedButton.classList.add('active');
+  growthRate = rate === 'conservative' ? GROWTH_CONSERVATIVE : rate === 'moderate' ? GROWTH_MODERATE : GROWTH_OPTIMISTIC;
+  renderChart('projection');
+}
+
+function update() {
+  const modelInputs = getInputs();
+  const etsyCalc = computeEtsy(modelInputs);
+  const coopCalc = computeCoop(modelInputs, etsyCalc);
+
+  // Update slider display values
+  document.getElementById('o-gmv').textContent = modelInputs.gmv >= 1000 ? '$' + (modelInputs.gmv/1000).toFixed(0) + 'k' : '$' + modelInputs.gmv;
+  document.getElementById('o-avgprice').textContent = '$' + modelInputs.avgPrice;
+  document.getElementById('o-listings').textContent = modelInputs.listings;
+  document.getElementById('o-listagemonths').textContent = modelInputs.listAgeMo + ' mo';
+  document.getElementById('o-oapct').textContent = Math.round(modelInputs.oaPct * 100) + '%';
+  document.getElementById('o-refund').textContent = (modelInputs.refundRate * 100).toFixed(1) + '%';
+  document.getElementById('o-membership').textContent = '$' + modelInputs.membership;
+  document.getElementById('o-ramp').textContent = (modelInputs.rampPct * 100).toFixed(1) + '%';
+  document.getElementById('o-netsize').textContent = modelInputs.netSize.toLocaleString();
+  document.getElementById('o-halflife').textContent = modelInputs.halfLife + ' yrs';
+  document.getElementById('o-tenure').textContent = modelInputs.tenure + ' yrs';
+  document.getElementById('o-fixedcosts').textContent = '$' + (modelInputs.fixedCosts/1000).toFixed(0) + 'k';
+  document.getElementById('o-varcost').textContent = '$' + modelInputs.varCost;
+  document.getElementById('o-adcost').textContent = '$' + modelInputs.adCostPerSale;
+
+  // Warnings
+  const warns = [];
+  if (modelInputs.gmv >= 10000 && modelInputs.oaPct > 0) warns.push('Above $10k/yr GMV, Offsite Ads participation is mandatory on Etsy. The 12% fee applies to ' + Math.round(modelInputs.oaPct*100) + '% of your sales (' + fmtV(modelInputs.gmv * modelInputs.oaPct) + ') whether you want it or not.');
+  if (!modelInputs.replaceAds && modelInputs.oaPct > 0.15) warns.push('You have not opted to replace Offsite Ads traffic. Moving to Dotcommon may reduce revenue on the ' + Math.round(modelInputs.oaPct*100) + '% of sales currently attributed to OA. Enable "Replicate Offsite Ads" to include independent ad spend in the Dotcommon cost.');
+  if (modelInputs.gmv < 10000 && modelInputs.oaPct > 0) warns.push('Below $10k/yr GMV you can opt out of Offsite Ads on Etsy. The model includes OA fees at your current setting — uncheck or reduce OA% if you have opted out.');
+  document.getElementById('warn-area').innerHTML = warns.map(w => '<div class="warn-box">' + w + '</div>').join('');
+
+  // Headline metrics
+  document.getElementById('m-etsy-total').textContent = fmtD(etsyCalc.total);
+  document.getElementById('m-etsy-rate').textContent = fmtPct(etsyCalc.effectiveRate) + ' of GMV';
+  document.getElementById('m-coop-total').textContent = fmtD(coopCalc.total);
+  document.getElementById('m-coop-rate').textContent = fmtPct(coopCalc.effectiveRate) + ' of GMV';
+
+  const saving = etsyCalc.total - coopCalc.total;
+  document.getElementById('m-saving').textContent = fmtD(saving);
+  document.getElementById('m-saving-pct').textContent = saving > 0
+    ? Math.round(saving / etsyCalc.total * 100) + '% cheaper than Etsy'
+    : 'Etsy is cheaper at this GMV';
+
+  // Break-even: how many months until membership fee recovered
+  const monthlySaving = saving / 12;
+  const breakeven = monthlySaving > 0 ? (modelInputs.membership / (monthlySaving + modelInputs.membership/12)).toFixed(1) : '—';
+  document.getElementById('m-breakeven').textContent = monthlySaving > 0 ? breakeven + ' mo' : 'N/A';
+  document.getElementById('m-breakeven-sub').textContent = monthlySaving > 0 ? 'to recover $' + modelInputs.membership + ' membership fee' : 'Dotcommon not cheaper at this profile';
+
+  // Etsy breakdown
+  document.getElementById('b-listing').textContent = fmtV(etsyCalc.listingFees);
+  document.getElementById('b-txfee').textContent = fmtV(etsyCalc.txFee);
+  document.getElementById('b-payment').textContent = fmtV(etsyCalc.paymentFee);
+  document.getElementById('b-refund').textContent = '−' + fmtV(etsyCalc.refundCredit);
+  document.getElementById('b-oa').textContent = etsyCalc.oaFee > 0 ? fmtV(etsyCalc.oaFee) + ' (' + Math.round(etsyCalc.oaRate*100) + '%)' : '$0';
+  document.getElementById('b-etsyplus').textContent = etsyCalc.etsyPlusFee > 0 ? fmtV(etsyCalc.etsyPlusFee) : '—';
+  document.getElementById('b-pattern').textContent = etsyCalc.patternFee > 0 ? fmtV(etsyCalc.patternFee) : '—';
+  document.getElementById('b-shiplabel').textContent = etsyCalc.shipLabelSaving > 0 ? '−' + fmtV(etsyCalc.shipLabelSaving) : '—';
+  document.getElementById('b-taxremit').textContent = '−' + fmtV(etsyCalc.taxRemitValue);
+  document.getElementById('b-etsy-total').textContent = fmtD(etsyCalc.total);
+  document.getElementById('b-etsy-rate').textContent = fmtPct(etsyCalc.effectiveRate) + ' of GMV';
+
+  // Dotcommon breakdown
+  document.getElementById('c-membership').textContent = fmtV(coopCalc.membershipFee);
+  document.getElementById('c-gas').textContent = fmtD(coopCalc.gasFee);
+  document.getElementById('c-ramp').textContent = fmtV(coopCalc.rampFee);
+  document.getElementById('c-taxadmin').textContent = coopCalc.taxAdminFee > 0 ? fmtV(coopCalc.taxAdminFee) : '—';
+  document.getElementById('c-adspend').textContent = coopCalc.adSpend > 0 ? fmtV(coopCalc.adSpend) : '—';
+  const fmtStakes = stakeCount => stakeCount >= 1000000 ? (stakeCount/1000000).toFixed(1)+'M' : stakeCount >= 1000 ? (stakeCount/1000).toFixed(0)+'k' : Math.round(stakeCount);
+  document.getElementById('c-dividend').textContent = coopCalc.dividendDisplay > 0
+    ? '−' + fmtD(coopCalc.dividendDisplay)
+      + '  |  $' + coopCalc.dividendPerStake.toFixed(4) + '/stake'
+      + '  |  ' + (coopCalc.sellerOwnership * 100).toFixed(2) + '% ownership'
+      + '  |  decay ' + (coopCalc.decayRate * 100).toFixed(1) + '%/yr'
+    : coopCalc.surplusPool <= 0 ? '— (pool insolvent)' : '—';
+  document.getElementById('c-coop-total').textContent = fmtD(coopCalc.total);
+  document.getElementById('c-coop-rate').textContent = fmtPct(coopCalc.effectiveRate) + ' of GMV';
+
+  renderChart(activeTab);
+}
+
+document.querySelectorAll('input[type=range], input[type=checkbox]').forEach(el => el.addEventListener('input', update));
+update();
+</script>
+
+<!-- ASSUMPTIONS -->
+<div class="assumptions-grid">
+  <div class="assumption-card">
+    <div class="assumption-title">ETSY FEE CALCULATIONS</div>
+    <div class="assumption-body">
+      <b>Listing fees</b> are $0.20 per initial listing plus $0.20 per renewal. Renewals occur every 4 months on unsold items and automatically on each sale. The model calculates unsold renewals as listings × floor(12 / listAgeMo / 4).<br><br>
+      <b>Transaction fee</b> is 6.5% of sale price including any shipping charge collected. Modelled on GMV directly — assumes shipping is passed through at cost so the fee applies to the item price component.<br><br>
+      <b>Payment processing</b> is 3% + $0.25 per transaction via Etsy Payments, which is mandatory in most countries. The per-transaction count is derived from GMV ÷ average sale price.<br><br>
+      <b>Offsite Ads</b> is 15% of attributed sales for sellers under $10k/yr GMV (opt-out available) and 12% for sellers over $10k/yr (mandatory). The model applies the appropriate rate to GMV × OA attribution percentage.<br><br>
+      <b>Refund credit</b>: Etsy refunds the transaction and payment processing portion of fees on returned orders but not the listing fee. Modelled as 9.5% of refunded GMV.<br><br>
+      <b>Shipping label discount</b> estimated at $2.40 per transaction, representing approximately 30% off a typical $8 retail label. Shown as a benefit (cost offset) in the Etsy column.
+    </div>
+  </div>
+  <div class="assumption-card">
+    <div class="assumption-title">DOTCOMMON CALCULATIONS</div>
+    <div class="assumption-body">
+      <b>Membership fee</b> is a flat annual amount covering all platform infrastructure. No listing fee, no transaction commission.<br><br>
+      <b>L2 gas</b> is estimated at $0.02 per transaction (escrow contract execution) plus $0.005 per listing (IPFS content hash anchoring). At typical L2 prices these are upper-bound estimates.<br><br>
+      <b>Fiat ramp</b> applies double conversion — inbound (client fiat to stablecoin) and outbound (stablecoin to seller fiat) — at the selected rate. Sellers who invoice in stablecoin or hold a portion of earnings in stablecoin pay toward the lower end.<br><br>
+      <b>Tax admin software</b> ($228/yr, TaxJar entry tier) is a differential cost — Etsy handles sales tax collection and remittance automatically. Shown as a Dotcommon cost only when the toggle is enabled. Etsy's automatic remittance is conservatively valued at $150/yr in the Etsy benefits column.<br><br>
+      <b>Independent ad spend</b> to replace Offsite Ads traffic defaults to $8 per OA-attributed transaction. This reflects warm retargeting and comparison shopping traffic (not cold acquisition, which would be $30–$40/sale). The slider allows adjustment from $1 to $40 per sale to reflect different seller contexts and ad channel efficiency.<br><br>
+      <b>Participation stake dividend</b>: surplusPool = (netSize × membershipFee) − fixedCosts − (varCost × netSize). dividendPerStake = surplusPool / totalNetworkStakes. Fixed operating costs do not scale with members, so the surplus pool grows faster than the network as membership increases — this is the mechanism by which dividendPerStake rises over time. In the 5-year projection, netSize compounds at the selected growth rate, totalNetworkStakes compounds at 60% of that rate (new members start with zero stakes and accumulate them gradually), and surplusPool grows faster than totalStakes because fixedCosts are amortised across more members each year. Faster network growth therefore produces a higher dividendPerStake in later years.
+    </div>
+  </div>
+  <div class="assumption-card">
+    <div class="assumption-title">WHAT IS NOT MODELLED</div>
+    <div class="assumption-body">
+      <b>Organic Etsy traffic</b>: Etsy's 90M+ buyer base provides discovery that Dotcommon cannot replicate at launch. This model does not quantify the revenue impact of reduced discoverability — it only models cost differences on equivalent GMV.<br><br>
+      <b>Seller time costs</b>: The administrative burden of tax compliance, independent marketing, and platform management is not quantified. Both platforms have non-zero time costs that vary by seller.<br><br>
+      <b>Etsy advertising spend</b>: Many sellers run Etsy Ads (on-platform promoted listings) separately from Offsite Ads. This optional cost is not included — it would increase the Etsy cost further.<br><br>
+      <b>Currency conversion</b>: International sellers face additional fees not modelled here.<br><br>
+      <b>Seller growth</b>: The cost vs GMV chart assumes the seller's profile (listings, avg price, OA%) stays constant as GMV scales, which is a simplification.
+    </div>
+  </div>
+  <div class="assumption-card">
+    <div class="assumption-title">5-YEAR PROJECTION ASSUMPTIONS</div>
+    <div class="assumption-body">
+      <b>Seller GMV growth</b>: Seller's own GMV assumed to grow at 5%/year regardless of scenario. The scenarios vary the Dotcommon network growth rate, not the seller's revenue.<br><br>
+      <b>Network growth rates</b>: Conservative 20%/yr, moderate 40%/yr, optimistic 70%/yr compound annual growth in network membership starting from 1,000 members.<br><br>
+      <b>Dividend per stake</b>: Grows logarithmically with network size, reflecting the increasing surplus generated by a larger membership fee pool and growing network value reserve. Conservative estimate — real dividend growth depends on transaction volume and governance decisions.<br><br>
+      <b>Etsy fees</b>: Assumed constant at current rates. Etsy has raised fees several times in recent years; any future increases would widen the saving further.<br><br>
+      <b>Dotcommon membership fee</b>: Assumed constant. A mature cooperative might reduce fees as operating costs amortise across a larger member base, which would widen the saving further.
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);">
+  <div class="section-label">key equations</div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-top:2px solid var(--etsy);border-radius:10px;padding:16px 18px;">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:500;color:var(--etsy);margin-bottom:12px;letter-spacing:0.06em;">ETSY COST MODEL</div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">transactions</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:10px;">
+        transactions = floor( GMV / avgSalePrice )
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">listing fees</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:4px;">
+        renewalsPerListing = floor( 12 / listAgeMo / 4 )
+      </div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:10px;">
+        listingFees = $0.20 × ( listings × (1 + renewalsPerListing) + transactions )
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">transaction fee</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:10px;">
+        txFee = GMV × 0.065
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">payment processing</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:10px;">
+        paymentFee = GMV × 0.03 + transactions × $0.25
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">offsite ads</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:4px;">
+        oaRate = GMV &lt; $10k ? 15% : 12%
+      </div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:10px;">
+        oaFee = GMV × oaPct × oaRate
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">refund credit</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:10px;">
+        refundCredit = GMV × refundRate × 0.095
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">total etsy cost</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--etsy);background:var(--etsy-dim);border:1px solid var(--etsy-mid);padding:8px 10px;border-radius:5px;">
+        etsyCost = listingFees + txFee + paymentFee<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ oaFee + subscriptions<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;− refundCredit − shippingDiscount − taxRemitValue
+      </div>
+    </div>
+
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-top:2px solid var(--coop);border-radius:10px;padding:16px 18px;">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:500;color:var(--coop);margin-bottom:12px;letter-spacing:0.06em;">DOTCOMMON COST MODEL</div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">payment infrastructure</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:4px;">
+        gasFee = transactions × $0.02 + listings × $0.005
+      </div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:10px;">
+        rampFee = GMV × rampRate × 2 &nbsp;&nbsp;← double conversion
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">network surplus pool</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:4px;">
+        feeRevenue = netSize × membershipFee
+      </div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:4px;">
+        operatingCosts = fixedCosts + varCost × netSize
+      </div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:10px;">
+        surplusPool = max( 0, feeRevenue − operatingCosts )
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">stake accrual</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:10px;">
+        stakesPerYear = GMV × STAKES_PER_DOLLAR + govVotes × STAKES_PER_GOV_VOTE
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">half-life decay</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:4px;">
+        annualDecayRate = 1 − 0.5^(1 / halfLifeYears)
+      </div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:10px;">
+        effectiveStakes = stakesPerYear × (1 − (1−decayRate)^tenure) / decayRate
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">derived totals</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:4px;">
+        totalNetworkStakes = netSize × effectiveStakes
+      </div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:10px;">
+        sellerHeldStakes = effectiveStakes  ← seller = avg member
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">dividend per stake &amp; seller dividend</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:4px;">
+        dividendPerStake = surplusPool / totalNetworkStakes
+      </div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:10px;">
+        sellerDividend = surplusPool × (sellerHeldStakes / totalNetworkStakes)
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">total dotcommon cost</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--coop);background:var(--coop-dim);border:1px solid var(--coop-mid);padding:8px 10px;border-radius:5px;">
+        coopCost = membershipFee + gasFee + rampFee<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ taxAdminFee + adSpend<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;− sellerDividend
+      </div>
+    </div>
+
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-top:2px solid var(--save);border-radius:10px;padding:16px 18px;grid-column:span 2;">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:500;color:var(--save);margin-bottom:12px;letter-spacing:0.06em;">5-YEAR PROJECTION</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">network &amp; stakes evolution</div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:4px;">
+            netSize[y] = netSize[y-1] × (1 + growthRate)
+          </div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:4px;">
+            newStakes[y] = netSize[y] × stakesPerYear
+          </div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;">
+            totalStakes[y] = totalStakes[y-1] × (1−decayRate) + newStakes[y]
+          </div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:4px;line-height:1.5;">Decay erodes old stakes each year; new issuance from growing membership replenishes them.</div>
+        </div>
+
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">seller stake evolution</div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:4px;">
+            sellerStakes[y] = sellerStakes[y-1] × (1−decayRate) + sellerGMV[y] × STAKES_PER_DOLLAR
+          </div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;">
+            GMV[y] = GMV × 1.05^(y-1)
+          </div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:4px;line-height:1.5;">Seller's old stakes decay but GMV growth means they earn more new stakes each year — ownership fraction rises if GMV grows faster than the network.</div>
+        </div>
+
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">why dividendPerStake grows</div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;margin-bottom:4px;">
+            surplusPool[y] = netSize[y] × fee − fixedCosts − varCost×netSize[y]
+          </div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);padding:6px 10px;border-radius:5px;">
+            dividendPerStake[y] = surplusPool[y] / totalStakes[y]
+          </div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:4px;line-height:1.5;">fixedCosts are constant — surplusPool grows with netSize while totalStakes is bounded by decay, so dividendPerStake rises as the network scales.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
