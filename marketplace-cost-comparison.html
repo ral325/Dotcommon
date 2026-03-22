@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marketplace Network Cost Comparison</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0f0e;
+  --surface: #161714;
+  --surface2: #1d1f1b;
+  --border: #2a2d27;
+  --border2: #343730;
+  --text: #e8ead4;
+  --text2: #8a8d7a;
+  --text3: #555750;
+  --green: #7ec87a;
+  --green-dim: rgba(126,200,122,0.12);
+  --amber: #d4a843;
+  --red: #c96c50;
+  --etsy: #e47a4a;
+  --ebay: #6a9fd4;
+  --amazon: #d4a843;
+  --dot-proto: #7ec87a;
+  --dot-full: #4aab8c;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2.5rem 2rem; max-width: 900px; margin: 0 auto; }
+header { margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 0.5px solid var(--border); }
+.eyebrow { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
+h1 { font-size: 22px; font-weight: 400; color: var(--text); line-height: 1.3; margin-bottom: 6px; }
+.subtitle { font-size: 13px; color: var(--text2); line-height: 1.6; max-width: 580px; }
+
+/* controls */
+.controls { background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 8px; }
+.controls-title { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text3); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 12px; }
+.controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
+.ctrl-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: baseline; }
+.ctrl-label span { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; color: var(--text); letter-spacing: 0; text-transform: none; }
+input[type=range] { width: 100%; -webkit-appearance: none; appearance: none; height: 2px; background: var(--border2); border-radius: 2px; outline: none; cursor: pointer; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--green); border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--green); }
+input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--green); border: 2px solid var(--bg); }
+.controls-note { font-size: 11px; color: var(--text3); margin-top: 10px; line-height: 1.55; }
+.controls-note em { font-style: normal; color: var(--text2); }
+
+/* section label */
+.section-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; }
+
+/* platform cards */
+.platforms { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.dotcommon-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.75rem; }
+.platform-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.platform-card.dot { background: var(--green-dim); border-color: rgba(126,200,122,0.25); }
+.platform-name { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.dot-name { color: var(--green); } .etsy-name { color: var(--etsy); } .ebay-name { color: var(--ebay); } .amazon-name { color: var(--amazon); }
+.platform-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.pct-display { font-family: 'DM Mono', monospace; font-size: 28px; font-weight: 300; line-height: 1; margin-bottom: 4px; }
+.dot .pct-display { color: var(--green); }
+.etsy-card .pct-display { color: var(--etsy); }
+.ebay-card .pct-display { color: var(--ebay); }
+.amazon-card .pct-display { color: var(--amazon); }
+.pct-abs { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+.fee-breakdown { border-top: 0.5px solid var(--border); padding-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.fee-line { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); }
+.fee-line .fee-val { font-family: 'DM Mono', monospace; color: var(--text2); white-space: nowrap; margin-left: 8px; }
+
+/* bar chart */
+.chart-section { margin-bottom: 1.75rem; }
+.bar-chart { background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px; padding: 20px; }
+.bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.bar-row:last-child { margin-bottom: 0; }
+.bar-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; width: 100px; flex-shrink: 0; color: var(--text2); }
+.bar-track { flex: 1; height: 20px; background: var(--surface2); border-radius: 3px; overflow: visible; position: relative; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s cubic-bezier(0.25,0.46,0.45,0.94); position: relative; }
+.bar-fill.stacked-secondary { position: absolute; top: 0; border-radius: 0 3px 3px 0; opacity: 0.55; }
+.bar-pct { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text); width: 52px; text-align: right; flex-shrink: 0; }
+.bar-separator { height: 1px; background: var(--border); margin: 6px 0 10px 0; }
+
+/* callout */
+.callout { background: var(--green-dim); border: 0.5px solid rgba(126,200,122,0.25); border-radius: 10px; padding: 14px 16px; margin-bottom: 1.75rem; display: flex; gap: 12px; align-items: flex-start; }
+.callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.callout-text { font-size: 12px; color: var(--text2); line-height: 1.6; }
+.callout-text strong { color: var(--green); font-weight: 500; }
+
+/* legend */
+.legend { display: flex; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.legend-swatch { width: 10px; height: 10px; border-radius: 2px; }
+
+/* assumptions */
+.assumptions { border-top: 0.5px solid var(--border); padding-top: 1.5rem; margin-bottom: 0; }
+.assumption-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.assumption-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.assumption-title { font-size: 11px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+.assumption-body { font-size: 11px; color: var(--text2); line-height: 1.65; }
+
+/* NRE note */
+.nre-section { margin-top: 1.5rem; border-top: 0.5px solid var(--border); padding-top: 1.5rem; margin-bottom: 1.5rem; }
+.nre-card { background: var(--surface); border: 0.5px solid var(--border); border-left: 2px solid var(--amber); border-radius: 8px; padding: 14px 16px; }
+.nre-title { font-size: 11px; font-weight: 500; color: var(--amber); margin-bottom: 8px; }
+.nre-body { font-size: 11px; color: var(--text2); line-height: 1.7; }
+.nre-body b { color: var(--text); font-weight: 500; }
+
+/* audit panel */
+.audit-toggle { display: flex; align-items: center; gap: 10px; margin-top: 1.5rem; cursor: pointer; user-select: none; padding: 10px 0; border-top: 0.5px solid var(--border); }
+.audit-toggle:hover .audit-toggle-label { color: var(--text); }
+.audit-toggle-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); letter-spacing: 0.12em; text-transform: uppercase; transition: color 0.15s; }
+.audit-chevron { font-size: 11px; color: var(--text3); transition: transform 0.2s; margin-left: auto; }
+.audit-chevron.open { transform: rotate(180deg); }
+.audit-panel { display: none; margin-bottom: 2rem; }
+.audit-panel.open { display: block; }
+.audit-group { margin-bottom: 1.25rem; }
+.audit-group-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text3); letter-spacing: 0.14em; text-transform: uppercase; padding: 6px 0 5px 0; border-bottom: 0.5px solid var(--border); margin-bottom: 0; }
+.audit-table { width: 100%; border-collapse: collapse; }
+.audit-table tr { border-bottom: 0.5px solid var(--border); }
+.audit-table tr:last-child { border-bottom: none; }
+.audit-table tr:hover td { background: var(--surface2); }
+.audit-table td { padding: 7px 10px 7px 0; vertical-align: top; font-size: 11px; background: transparent; transition: background 0.1s; }
+.audit-table td:first-child { padding-left: 0; width: 210px; }
+.audit-table td:last-child { text-align: right; padding-right: 0; width: 80px; }
+.a-varname { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text2); white-space: nowrap; }
+.a-formula { color: var(--text3); line-height: 1.5; padding-right: 16px; }
+.a-formula em { font-style: normal; color: var(--text2); }
+.a-value { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--green); white-space: nowrap; }
+.a-value.red { color: var(--red); }
+.a-value.amber { color: var(--amber); }
+.a-value.dim { color: var(--text2); }
+.audit-const-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+.audit-const-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 0.5px solid var(--border); gap: 8px; }
+.audit-const-row:last-child { border-bottom: none; }
+.audit-const-name { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text2); flex-shrink: 0; }
+.audit-const-desc { font-size: 11px; color: var(--text3); text-align: right; flex: 1; padding: 0 8px; }
+.audit-const-val { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--amber); flex-shrink: 0; white-space: nowrap; }
+
+@media (max-width: 600px) {
+  .platforms, .dotcommon-row, .assumption-grid, .controls-grid, .audit-const-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Dotcommon · Network cost model</div>
+  <h1>Marketplace fee comparison — % of GMV</h1>
+  <p class="subtitle">Protocol and financial infrastructure costs as a share of gross transaction value. Dotcommon shown in two layers: protocol-only (no fiat conversion) and full stack including fiat ramp. Per-member fixed costs are amortised per transaction at current network size.</p>
+</header>
+
+<!-- Transaction profile sliders -->
+<div class="controls" style="margin-bottom:8px;">
+  <div class="controls-title">Transaction profile</div>
+  <div class="controls-grid">
+    <div class="ctrl-group">
+      <div class="ctrl-label">Avg transaction size <span id="o-tx">$45</span></div>
+      <input type="range" id="s-tx" min="5" max="500" step="5" value="45">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Annual seller GMV <span id="o-gmv">$12,000</span></div>
+      <input type="range" id="s-gmv" min="1000" max="150000" step="1000" value="12000">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Network member count <span id="o-members">2,000</span></div>
+      <input type="range" id="s-members" min="100" max="50000" step="100" value="2000">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Avg active listings / seller <span id="o-listings">12</span></div>
+      <input type="range" id="s-listings" min="1" max="100" step="1" value="12">
+    </div>
+  </div>
+  <div class="controls-note"><em>Network member count</em> amortises RPC infrastructure cost across all sellers. <em>Avg active listings</em> drives IPFS pinning spend and registry write gas.</div>
+</div>
+
+<!-- High-uncertainty Dotcommon parameter sliders -->
+<div class="controls" style="margin-bottom:1.75rem;">
+  <div class="controls-title">Dotcommon cost parameters — high uncertainty</div>
+  <div class="controls-grid">
+    <div class="ctrl-group">
+      <div class="ctrl-label">IPFS pinning / listing / mo <span id="o-ipfs">$0.008</span></div>
+      <input type="range" id="s-ipfs" min="0.001" max="0.05" step="0.001" value="0.008">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">ZK attestations / seller / yr <span id="o-zk">2</span></div>
+      <input type="range" id="s-zk" min="1" max="6" step="1" value="2">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Kleros escalation rate (% of txns) <span id="o-kleros">0.20%</span></div>
+      <input type="range" id="s-kleros" min="0.05" max="2" step="0.05" value="0.2">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">RPC infra cost / mo (network) <span id="o-rpc">$400</span></div>
+      <input type="range" id="s-rpc" min="50" max="3000" step="50" value="400">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">DAO votes / yr (network-wide) <span id="o-daovotes">18</span></div>
+      <input type="range" id="s-daovotes" min="4" max="52" step="2" value="18">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Seller account lifetime (yrs) <span id="o-lifetime">4</span></div>
+      <input type="range" id="s-lifetime" min="1" max="10" step="1" value="4">
+    </div>
+  </div>
+  <div class="controls-note">
+    <em>IPFS pinning:</em> Pinata Growth ~$0.15/GB/mo; typical listing estimated 3–15MB → $0.0005–$0.002/listing/mo; slider default of $0.008 is a conservative planning value. &nbsp;
+    <em>ZK attestation:</em> TLSNotary has no public pricing; compute cost borne by network. Default 2/yr = annual re-attestation plus one additional. &nbsp;
+    <em>Kleros escalation:</em> Historical Kleros data on comparable platforms suggests 0.05–0.5% of transactions reach external arbitration. &nbsp;
+    <em>RPC infra:</em> Alchemy/Infura Growth tier $49–$499/mo; self-hosted Optimism node $200–$800/mo in cloud. &nbsp;
+    <em>Seller lifetime:</em> amortises one-time onboarding gas over all transactions that seller will ever make.
+  </div>
+</div>
+
+<!-- Traditional platform cards -->
+<div class="section-label" style="margin-bottom:10px;">Traditional platforms — total seller cost as % of GMV</div>
+<div class="platforms">
+  <div class="platform-card etsy-card">
+    <div class="platform-name etsy-name"><div class="platform-dot" style="background:var(--etsy);"></div>Etsy</div>
+    <div class="pct-display" id="etsy-pct">—</div>
+    <div class="pct-abs" id="etsy-abs">—</div>
+    <div class="fee-breakdown">
+      <div class="fee-line"><span>Transaction fee</span><span class="fee-val">6.5%</span></div>
+      <div class="fee-line"><span>Payment processing</span><span class="fee-val">3% + $0.25</span></div>
+      <div class="fee-line"><span>Listing fee (amortised)</span><span class="fee-val">$0.20/sale</span></div>
+    </div>
+  </div>
+  <div class="platform-card ebay-card">
+    <div class="platform-name ebay-name"><div class="platform-dot" style="background:var(--ebay);"></div>eBay</div>
+    <div class="pct-display" id="ebay-pct">—</div>
+    <div class="pct-abs" id="ebay-abs">—</div>
+    <div class="fee-breakdown">
+      <div class="fee-line"><span>Final value fee</span><span class="fee-val">13.25%</span></div>
+      <div class="fee-line"><span>Managed payments</span><span class="fee-val">$0.30/order</span></div>
+      <div class="fee-line"><span>Listing (250 free/mo)</span><span class="fee-val">$0.00</span></div>
+    </div>
+  </div>
+  <div class="platform-card amazon-card">
+    <div class="platform-name amazon-name"><div class="platform-dot" style="background:var(--amazon);"></div>Amazon</div>
+    <div class="pct-display" id="amazon-pct">—</div>
+    <div class="pct-abs" id="amazon-abs">—</div>
+    <div class="fee-breakdown">
+      <div class="fee-line"><span>Referral fee</span><span class="fee-val">15%</span></div>
+      <div class="fee-line"><span>Pro seller (amortised)</span><span class="fee-val" id="amazon-sub">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Dotcommon cards -->
+<div class="section-label" style="margin-bottom:10px; margin-top:1.5rem;">Dotcommon — two cost layers</div>
+<div class="dotcommon-row">
+  <div class="platform-card dot">
+    <div class="platform-name dot-name"><div class="platform-dot" style="background:var(--dot-proto);"></div>Protocol only</div>
+    <div class="pct-display" id="dot-proto-pct">—</div>
+    <div class="pct-abs" id="dot-proto-abs">—</div>
+    <div class="fee-breakdown">
+      <div class="fee-line"><span>Network fee (% GMV)</span><span class="fee-val">1.5%</span></div>
+      <div class="fee-line"><span>Dispute reserve (% GMV)</span><span class="fee-val">0.1%</span></div>
+      <div class="fee-line"><span>Escrow gas (L2 mid)</span><span class="fee-val" id="d-escrow">—</span></div>
+      <div class="fee-line"><span>Reputation write gas</span><span class="fee-val" id="d-rep">—</span></div>
+      <div class="fee-line"><span>The Graph query fee</span><span class="fee-val" id="d-graph">—</span></div>
+      <div class="fee-line"><span>Kleros escalation (expected)</span><span class="fee-val" id="d-kleros">—</span></div>
+      <div class="fee-line"><span>Listing registry gas (amort.)</span><span class="fee-val" id="d-registry">—</span></div>
+      <div class="fee-line"><span>ZK attestation (amort.)</span><span class="fee-val" id="d-zk">—</span></div>
+      <div class="fee-line"><span>IPFS pinning (amort.)</span><span class="fee-val" id="d-ipfs">—</span></div>
+      <div class="fee-line"><span>Privy wallet (amort.)</span><span class="fee-val" id="d-privy">—</span></div>
+      <div class="fee-line"><span>Onboarding gas (amort.)</span><span class="fee-val" id="d-onboard">—</span></div>
+      <div class="fee-line"><span>DAO governance gas (amort.)</span><span class="fee-val" id="d-dao">—</span></div>
+      <div class="fee-line"><span>RPC infra (amort.)</span><span class="fee-val" id="d-rpc">—</span></div>
+    </div>
+  </div>
+  <div class="platform-card dot">
+    <div class="platform-name dot-name"><div class="platform-dot" style="background:var(--dot-full);"></div>Protocol + fiat ramp</div>
+    <div class="pct-display" id="dot-full-pct">—</div>
+    <div class="pct-abs" id="dot-full-abs">—</div>
+    <div class="fee-breakdown">
+      <div class="fee-line"><span>All protocol costs above</span><span class="fee-val">↑</span></div>
+      <div class="fee-line"><span>Fiat → DAI on-ramp (mid)</span><span class="fee-val">1.0%</span></div>
+      <div class="fee-line"><span>DAI → fiat off-ramp (mid)</span><span class="fee-val">1.0%</span></div>
+      <div class="fee-line"><span>Paymaster sponsored gas</span><span class="fee-val" id="d-paymaster">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Bar chart -->
+<div class="chart-section">
+  <div class="section-label" style="margin-bottom:10px;">Side-by-side — % of GMV</div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--etsy);"></div>Etsy</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--ebay);"></div>eBay</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--amazon);"></div>Amazon</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--dot-proto);"></div>Dotcommon protocol-only</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--dot-full); opacity:0.6;"></div>+ fiat ramp</div>
+  </div>
+  <div class="bar-chart">
+    <div class="bar-row">
+      <div class="bar-label" style="color:var(--etsy);">Etsy</div>
+      <div class="bar-track"><div class="bar-fill" id="bar-etsy" style="background:var(--etsy);width:0%;"></div></div>
+      <div class="bar-pct" id="barpct-etsy">—</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label" style="color:var(--ebay);">eBay</div>
+      <div class="bar-track"><div class="bar-fill" id="bar-ebay" style="background:var(--ebay);width:0%;"></div></div>
+      <div class="bar-pct" id="barpct-ebay">—</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label" style="color:var(--amazon);">Amazon</div>
+      <div class="bar-track"><div class="bar-fill" id="bar-amazon" style="background:var(--amazon);width:0%;"></div></div>
+      <div class="bar-pct" id="barpct-amazon">—</div>
+    </div>
+    <div class="bar-separator"></div>
+    <div class="bar-row">
+      <div class="bar-label" style="color:var(--dot-proto);">Dotcommon<br><span style="opacity:0.6;font-size:9px;">protocol</span></div>
+      <div class="bar-track"><div class="bar-fill" id="bar-dot-proto" style="background:var(--dot-proto);width:0%;"></div></div>
+      <div class="bar-pct" id="barpct-dot-proto">—</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label" style="color:var(--dot-full);">Dotcommon<br><span style="opacity:0.6;font-size:9px;">+ ramp</span></div>
+      <div class="bar-track">
+        <div class="bar-fill" id="bar-dot-proto2" style="background:var(--dot-proto);width:0%;"></div>
+        <div class="bar-fill stacked-secondary" id="bar-dot-ramp" style="background:var(--dot-full);width:0%;"></div>
+      </div>
+      <div class="bar-pct" id="barpct-dot-full">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Callout -->
+<div class="callout">
+  <div class="callout-icon">↓</div>
+  <div class="callout-text" id="callout-text">—</div>
+</div>
+
+<!-- Assumptions -->
+<div class="assumptions">
+  <div class="section-label" style="margin-bottom:10px;">Model assumptions</div>
+  <div class="assumption-grid">
+    <div class="assumption-card">
+      <div class="assumption-title">Etsy fee structure</div>
+      <div class="assumption-body">6.5% transaction fee + 3% + $0.25 Etsy Payments processing fee + $0.20 listing fee per item. Listing fee amortised per transaction assuming each listing sells once per listing period. At higher transaction sizes the listing fee becomes negligible.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">eBay fee structure</div>
+      <div class="assumption-body">13.25% final value fee (typical general merchandise, managed payments). $0.30 per order fixed fee. First 250 listings per month are free — listing fee modelled as $0 for active sellers.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">Amazon fee structure</div>
+      <div class="assumption-body">15% referral fee (general merchandise; varies 6–20% by category). $39.99/month Professional Seller subscription amortised across all transactions at current GMV ÷ transaction size. FBA fulfilment excluded — seller-fulfilled only.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">Escrow gas</div>
+      <div class="assumption-body">Two on-chain transactions per trade: lock on purchase, release on confirmation. L2 gas estimated $0.01–$0.06 per transaction on Optimism based on 2024–25 observed fees. Model uses midpoint ($0.035). Gas costs are expressed in USD — in practice they fluctuate with network congestion.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">Listing registry gas</div>
+      <div class="assumption-body">Each new or updated listing writes a CID pointer to the on-chain registry contract — a SSTORE operation, more expensive than a simple transfer. Estimated $0.02–$0.08 per write; model uses midpoint ($0.05). Assumed 2 writes per listing per year (creation + one update on average). Annual cost = listings × 2 × $0.05, amortised per transaction.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">Reputation write gas</div>
+      <div class="assumption-body">One on-chain write per completed transaction — buyer submits a signed rating stored in a mapping. Estimated $0.03–$0.10 per write on Optimism; model uses midpoint ($0.065). This is a direct per-transaction cost, not amortised.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">The Graph query fee</div>
+      <div class="assumption-body">The Graph Protocol charges query fees in GRT passed through to consumers. Estimated $0.0001–$0.001 per query for simple subgraph lookups. Each transaction assumed to involve 3 queries: listing lookup, seller profile, order status. Model uses midpoint $0.0005/query × 3 = $0.0015/transaction.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">ZK attestation (TLSNotary)</div>
+      <div class="assumption-body">Sellers re-attest identity on a cadence set by the slider (default: 2/yr). TLSNotary has no fixed pricing — compute cost borne by the network. Estimated $0.00–$0.30 per proof; model uses $0.20 as a pessimistic planning value. On-chain verification gas estimated $0.08–$0.60 per submission; model uses midpoint $0.34. Annual cost per seller = zkPerYear × ($0.20 + $0.34), amortised per transaction.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">IPFS pinning cost</div>
+      <div class="assumption-body">Persistent listing storage via Pinata or equivalent. Pinata Growth plan: ~$0.15/GB/month. A typical physical goods listing (3–5 images + JSON metadata) is estimated at 3–15MB → $0.0005–$0.002/listing/month. Slider default of $0.008 is a conservative planning value for larger image sets. Annual cost = listings × $/listing/mo × 12, amortised per transaction.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">Kleros escalation fee</div>
+      <div class="assumption-body">Tier 3 disputes escalated to Kleros incur a juror fee. Kleros court fees on Gnosis Chain: approximately $15–$60 per dispute depending on court and appeal rounds; model uses $30 as planning midpoint. Expected cost per transaction = (escalation rate ÷ 100) × $30. At default 0.2% rate this is $0.06/transaction — the largest single uncertainty driver at high dispute rates.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">Privy wallet fee</div>
+      <div class="assumption-body">Privy charges ~$0.05–$0.10 per active user per month for embedded wallet infrastructure. Model uses midpoint $0.075/user/month = $0.90/year. Amortised per transaction by dividing by txPerYear. Sellers using their own self-custody wallets avoid this cost entirely — it is part of the accessibility layer, not the base protocol.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">Onboarding gas</div>
+      <div class="assumption-body">One-time cost to initialise a seller's on-chain profile (registering with the registry contract). Estimated $0.10–$0.50 on Optimism; model uses midpoint $0.30. Amortised over seller's expected account lifetime (slider, default 4 years) × txPerYear. Becomes negligible for active sellers with long account lifetimes.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">DAO governance gas</div>
+      <div class="assumption-body">On-chain Aragon OSx votes consume gas per participating member. Estimated $0.30–$1.50 per vote per member; model uses midpoint $0.90. Annual governance gas per member = daoVotesPerYear × $0.90. Amortised per transaction. Default 18 votes/year ≈ roughly bi-weekly with some gaps. This assumes every member votes in every proposal — actual participation rate would lower this cost.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">RPC / node infrastructure</div>
+      <div class="assumption-body">Network-operated Alchemy/Infura account or self-hosted Optimism node. Monthly cost set by slider (default $400/mo = $4,800/yr). Divided equally across all network members → per-member annual cost, then divided by txPerYear → per-transaction cost. At 2,000 members and $400/mo this is $2.40/member/year — negligible at reasonable transaction volumes, visible for low-volume sellers.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">Fiat ramp (double conversion)</div>
+      <div class="assumption-body">Buyer converts fiat → DAI (on-ramp, 0.5–1.5% via Stripe); seller converts DAI → fiat (off-ramp, 0.5–1.5%). Model uses midpoint of 1.0% per leg = 2.0% total. ERC-4337 paymaster sponsored gas adds ~$0.006/tx. Sellers holding DAI avoid both ramp legs and pay the protocol-only rate.</div>
+    </div>
+    <div class="assumption-card">
+      <div class="assumption-title">What is not included</div>
+      <div class="assumption-body">Shipping costs (identical across all platforms — excluded for comparability). Advertising / promoted listings. Returns and chargeback processing. Dotcommon mutual credit interest cost (separate model). Amazon FBA storage and fulfilment. Peer arbitration fees at Tier 2 (assumed absorbed into the dispute reserve). Token price volatility.</div>
+    </div>
+  </div>
+</div>
+
+<!-- NRE note -->
+<div class="nre-section">
+  <div class="section-label" style="margin-bottom:10px;">Non-recurring costs — excluded from model</div>
+  <div class="nre-card">
+    <div class="nre-title">NRE items not included in per-transaction cost model</div>
+    <div class="nre-body">
+      These are one-time or infrequent capital costs that do not recur per transaction. They are real and must be planned for separately but are excluded to keep the running cost comparison clean.<br><br>
+      <b>Smart contract security audits</b> — escrow, on-chain listing registry, reputation contract, and any credit pool contracts each require an independent audit. Typical range from a reputable firm (Trail of Bits, OpenZeppelin, Spearbit): $20,000–$80,000 per engagement. A full initial suite of 3–4 contracts: $60,000–$200,000. Re-audits required after any significant upgrade.<br><br>
+      <b>Legal entity and cooperative formation</b> — establishing the legal structure (multi-stakeholder cooperative, LLC wrapper, or foundation), drafting member agreements, and obtaining any required money transmission or financial services licences. Estimated range: $15,000–$75,000 depending on jurisdiction, with ongoing compliance counsel at $5,000–$20,000/year thereafter.<br><br>
+      <b>The Graph subgraph development and deployment</b> — indexing contract events into a queryable subgraph is a one-time engineering cost. Once deployed, the per-query fee is captured in the running model above.<br><br>
+      <b>TLSNotary notary server infrastructure setup</b> — standing up the attestation server environment is a one-time engineering and infrastructure provisioning cost. Ongoing compute is captured by the per-proof cost in the model above.
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// NAMED CONSTANTS — every fixed assumption in one documented block
+// ═══════════════════════════════════════════════════════════════════
+
+// Traditional platforms
+const ETSY_TRANSACTION_FEE      = 0.065;   // 6.5% Etsy transaction fee
+const ETSY_PAYMENT_PCT          = 0.030;   // 3.0% Etsy Payments processing %
+const ETSY_PAYMENT_FIXED        = 0.25;    // $0.25 Etsy Payments fixed fee per tx
+const ETSY_LISTING_FEE          = 0.20;    // $0.20 per listing, amortised per sale
+
+const EBAY_FINAL_VALUE_FEE      = 0.1325;  // 13.25% eBay final value fee (general merch)
+const EBAY_ORDER_FIXED          = 0.30;    // $0.30 eBay per-order fixed fee
+
+const AMAZON_REFERRAL_FEE       = 0.15;    // 15% Amazon referral fee (general merch)
+const AMAZON_PRO_MONTHLY        = 39.99;   // $39.99/mo Amazon Pro Seller subscription
+
+// Dotcommon — % of GMV (governance-set, low uncertainty)
+const DOT_NETWORK_FEE           = 0.015;   // 1.5% network fee, midpoint of 1–2% constitutional range
+const DOT_DISPUTE_RESERVE       = 0.001;   // 0.1% arbitration pool contribution per transaction
+
+// Dotcommon — escrow gas (L2, moderate uncertainty, observed 2024–25)
+const DOT_ESCROW_GAS_OPT        = 0.01;    // $0.01 optimistic: each escrow tx on Optimism at low congestion
+const DOT_ESCROW_GAS_PES        = 0.06;    // $0.06 pessimistic: each escrow tx at higher congestion
+// Two escrow txns per trade (lock + release)
+const DOT_ESCROW_GAS_MID        = (DOT_ESCROW_GAS_OPT + DOT_ESCROW_GAS_PES) / 2 * 2; // $0.07
+
+// Dotcommon — listing registry gas (moderate uncertainty)
+const DOT_REGISTRY_GAS_OPT      = 0.02;    // $0.02 optimistic: SSTORE on Optimism, warm storage
+const DOT_REGISTRY_GAS_PES      = 0.08;    // $0.08 pessimistic: cold SSTORE with higher congestion
+const DOT_REGISTRY_GAS_MID      = (DOT_REGISTRY_GAS_OPT + DOT_REGISTRY_GAS_PES) / 2; // $0.05
+const DOT_REGISTRY_UPDATES_PY   = 2;       // 2 registry writes per listing per year (create + 1 update avg)
+
+// Dotcommon — reputation write gas (moderate uncertainty)
+const DOT_REP_GAS_OPT           = 0.03;    // $0.03 optimistic: one SSTORE per completed transaction
+const DOT_REP_GAS_PES           = 0.10;    // $0.10 pessimistic
+const DOT_REP_GAS_MID           = (DOT_REP_GAS_OPT + DOT_REP_GAS_PES) / 2; // $0.065
+
+// Dotcommon — The Graph query fee (low uncertainty, published pricing band)
+const DOT_GRAPH_QUERIES_PER_TX  = 3;       // 3 subgraph queries per tx: listing lookup, seller profile, order status
+const DOT_GRAPH_COST_PER_QUERY  = 0.0005;  // $0.0005/query: midpoint of published $0.0001–$0.001 range
+
+// Dotcommon — ZK attestation (high uncertainty — TLSNotary has no public pricing)
+const DOT_ZK_PROOF_COST         = 0.20;    // $0.20/proof: pessimistic self-hosted TLSNotary compute estimate
+const DOT_ZK_VERIFY_GAS_OPT     = 0.08;    // $0.08 optimistic on-chain ZK proof verification gas
+const DOT_ZK_VERIFY_GAS_PES     = 0.60;    // $0.60 pessimistic on-chain ZK proof verification gas
+const DOT_ZK_VERIFY_GAS_MID     = (DOT_ZK_VERIFY_GAS_OPT + DOT_ZK_VERIFY_GAS_PES) / 2; // $0.34
+
+// Dotcommon — Kleros arbitration (high uncertainty — escalation rate unknown)
+const DOT_KLEROS_FEE_PER_CASE   = 30.00;   // $30 midpoint: Kleros Gnosis Chain court fee range $15–$60
+
+// Dotcommon — Privy wallet (moderate uncertainty — published pricing)
+const DOT_PRIVY_MONTHLY         = 0.075;   // $0.075/active user/month: midpoint of $0.05–$0.10 range
+// Annual: $0.075 × 12 = $0.90/seller/year
+
+// Dotcommon — onboarding gas (low uncertainty — one-time L2 contract interaction)
+const DOT_ONBOARD_GAS_OPT       = 0.10;    // $0.10 optimistic: simple registry registration call
+const DOT_ONBOARD_GAS_PES       = 0.50;    // $0.50 pessimistic: account init with more on-chain state
+const DOT_ONBOARD_GAS_MID       = (DOT_ONBOARD_GAS_OPT + DOT_ONBOARD_GAS_PES) / 2; // $0.30
+
+// Dotcommon — DAO governance gas per member per vote (moderate uncertainty — Aragon OSx)
+const DOT_DAO_GAS_PER_VOTE_OPT  = 0.30;    // $0.30 optimistic: Aragon OSx vote on Optimism, low congestion
+const DOT_DAO_GAS_PER_VOTE_PES  = 1.50;    // $1.50 pessimistic: complex proposal or higher congestion
+const DOT_DAO_GAS_PER_VOTE_MID  = (DOT_DAO_GAS_PER_VOTE_OPT + DOT_DAO_GAS_PER_VOTE_PES) / 2; // $0.90
+
+// Dotcommon — fiat ramp (published Stripe rates)
+const RAMP_ON_MID               = 0.010;   // 1.0% fiat→DAI midpoint (Stripe on-ramp 0.5–1.5%)
+const RAMP_OFF_MID              = 0.010;   // 1.0% DAI→fiat midpoint (Stripe off-ramp 0.5–1.5%)
+const RAMP_TOTAL_MID            = RAMP_ON_MID + RAMP_OFF_MID; // 2.0% combined double-conversion cost
+
+const DOT_PAYMASTER_PER_TX      = 0.006;   // $0.006 ERC-4337 paymaster sponsored gas per transaction
+
+// Chart scale ceiling
+const BAR_MAX_PCT               = 25;      // bar chart x-axis ceiling at 25% of GMV
+
+// ═══════════════════════════════════════════════════════════════════
+// COMPUTE — all inputs explicit, no hidden globals
+// ═══════════════════════════════════════════════════════════════════
+function compute(txSize, annualGMV, members, listings, ipfsPerListingPerMo, zkPerYear, kleroPct, rpcPerMo, daoVotesPerYear, sellerLifetimeYears) {
+
+  const txPerYear = annualGMV / txSize;
+
+  // Traditional platforms
+  const etsyPerTx      = txSize * (ETSY_TRANSACTION_FEE + ETSY_PAYMENT_PCT) + ETSY_PAYMENT_FIXED + ETSY_LISTING_FEE;
+  const etsyPct        = etsyPerTx / txSize;
+
+  const ebayPerTx      = txSize * EBAY_FINAL_VALUE_FEE + EBAY_ORDER_FIXED;
+  const ebayPct        = ebayPerTx / txSize;
+
+  const amazonSubPerTx = (AMAZON_PRO_MONTHLY * 12) / txPerYear;
+  const amazonPerTx    = txSize * AMAZON_REFERRAL_FEE + amazonSubPerTx;
+  const amazonPct      = amazonPerTx / txSize;
+
+  // Dotcommon — per-transaction costs (not amortised)
+  const networkFeePerTx  = txSize * DOT_NETWORK_FEE;                              // scales with tx size
+  const disputeResPerTx  = txSize * DOT_DISPUTE_RESERVE;                          // scales with tx size
+  const escrowGasPerTx   = DOT_ESCROW_GAS_MID;                                    // fixed per tx
+  const repGasPerTx      = DOT_REP_GAS_MID;                                       // fixed per tx
+  const graphFeePerTx    = DOT_GRAPH_QUERIES_PER_TX * DOT_GRAPH_COST_PER_QUERY;   // fixed per tx
+  const kleroCostPerTx   = (kleroPct / 100) * DOT_KLEROS_FEE_PER_CASE;            // expected value: prob × fee
+
+  // Dotcommon — per-seller annual costs, amortised per transaction (÷ txPerYear)
+  const registryAnnual   = listings * DOT_REGISTRY_UPDATES_PY * DOT_REGISTRY_GAS_MID;
+  const registryPerTx    = registryAnnual / txPerYear;
+
+  const zkAnnual         = zkPerYear * (DOT_ZK_PROOF_COST + DOT_ZK_VERIFY_GAS_MID);
+  const zkPerTx          = zkAnnual / txPerYear;
+
+  const ipfsAnnual       = listings * ipfsPerListingPerMo * 12;
+  const ipfsPerTx        = ipfsAnnual / txPerYear;
+
+  const privyAnnual      = DOT_PRIVY_MONTHLY * 12;
+  const privyPerTx       = privyAnnual / txPerYear;
+
+  // Onboarding: one-time, spread over lifetime years × txPerYear
+  const onboardPerTx     = DOT_ONBOARD_GAS_MID / (sellerLifetimeYears * txPerYear);
+
+  const daoAnnual        = daoVotesPerYear * DOT_DAO_GAS_PER_VOTE_MID;
+  const daoPerTx         = daoAnnual / txPerYear;
+
+  // RPC: network monthly cost → annual → per member → per tx
+  const rpcPerMemberAnnual = (rpcPerMo * 12) / members;
+  const rpcPerTx           = rpcPerMemberAnnual / txPerYear;
+
+  // Dotcommon protocol total
+  const dotProtoPerTx =
+    networkFeePerTx + disputeResPerTx +
+    escrowGasPerTx  + repGasPerTx     + graphFeePerTx  + kleroCostPerTx +
+    registryPerTx   + zkPerTx         + ipfsPerTx      +
+    privyPerTx      + onboardPerTx    + daoPerTx       + rpcPerTx;
+  const dotProtoPct = dotProtoPerTx / txSize;
+
+  // Dotcommon full stack (protocol + fiat ramp + paymaster)
+  const rampPerTx    = txSize * RAMP_TOTAL_MID;
+  const dotFullPerTx = dotProtoPerTx + rampPerTx + DOT_PAYMASTER_PER_TX;
+  const dotFullPct   = dotFullPerTx / txSize;
+
+  return {
+    txPerYear, etsyPct, etsyPerTx, ebayPct, ebayPerTx, amazonPct, amazonPerTx, amazonSubPerTx,
+    dotProtoPct, dotProtoPerTx, dotFullPct, dotFullPerTx,
+    lines: {
+      networkFeePerTx, disputeResPerTx, escrowGasPerTx, repGasPerTx,
+      graphFeePerTx, kleroCostPerTx, registryPerTx, zkPerTx, ipfsPerTx,
+      privyPerTx, onboardPerTx, daoPerTx, rpcPerTx, rampPerTx,
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FORMAT HELPERS
+// ═══════════════════════════════════════════════════════════════════
+const fP1  = v => (v * 100).toFixed(1) + '%';
+const fP3  = v => (v * 100).toFixed(3) + '%';
+const f2   = v => '$' + v.toFixed(2);
+const f3   = v => '$' + v.toFixed(3);
+const fK   = v => v >= 1000 ? '$' + (v/1000).toFixed(1) + 'k' : '$' + Math.round(v).toLocaleString();
+const fI   = v => Math.round(v).toLocaleString();
+
+// ═══════════════════════════════════════════════════════════════════
+// UPDATE DOM
+// ═══════════════════════════════════════════════════════════════════
+function update() {
+  const txSize   = +document.getElementById('s-tx').value;
+  const annualGMV= +document.getElementById('s-gmv').value;
+  const members  = +document.getElementById('s-members').value;
+  const listings = +document.getElementById('s-listings').value;
+  const ipfs     = +document.getElementById('s-ipfs').value;
+  const zk       = +document.getElementById('s-zk').value;
+  const kleros   = +document.getElementById('s-kleros').value;
+  const rpc      = +document.getElementById('s-rpc').value;
+  const daoVotes = +document.getElementById('s-daovotes').value;
+  const lifetime = +document.getElementById('s-lifetime').value;
+
+  const r = compute(txSize, annualGMV, members, listings, ipfs, zk, kleros, rpc, daoVotes, lifetime);
+  const L = r.lines;
+
+  // Slider display labels
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('o-tx',       '$' + txSize);
+  set('o-gmv',      fK(annualGMV));
+  set('o-members',  members.toLocaleString());
+  set('o-listings', listings);
+  set('o-ipfs',     '$' + ipfs.toFixed(3));
+  set('o-zk',       zk);
+  set('o-kleros',   kleros.toFixed(2) + '%');
+  set('o-rpc',      '$' + rpc.toLocaleString());
+  set('o-daovotes', daoVotes);
+  set('o-lifetime', lifetime);
+
+  // Traditional cards
+  set('etsy-pct',   fP1(r.etsyPct));
+  set('etsy-abs',   f2(r.etsyPerTx) + ' per transaction');
+  set('ebay-pct',   fP1(r.ebayPct));
+  set('ebay-abs',   f2(r.ebayPerTx) + ' per transaction');
+  set('amazon-pct', fP1(r.amazonPct));
+  set('amazon-abs', f2(r.amazonPerTx) + ' per transaction');
+  set('amazon-sub', f2(r.amazonSubPerTx) + '/tx amortised');
+
+  // Dotcommon protocol card
+  set('dot-proto-pct', fP1(r.dotProtoPct));
+  set('dot-proto-abs', f2(r.dotProtoPerTx) + ' per transaction');
+  set('d-escrow',   f3(L.escrowGasPerTx));
+  set('d-rep',      f3(L.repGasPerTx));
+  set('d-graph',    f3(L.graphFeePerTx));
+  set('d-kleros',   f3(L.kleroCostPerTx));
+  set('d-registry', f3(L.registryPerTx) + '/tx amort.');
+  set('d-zk',       f3(L.zkPerTx) + '/tx amort.');
+  set('d-ipfs',     f3(L.ipfsPerTx) + '/tx amort.');
+  set('d-privy',    f3(L.privyPerTx) + '/tx amort.');
+  set('d-onboard',  f3(L.onboardPerTx) + '/tx amort.');
+  set('d-dao',      f3(L.daoPerTx) + '/tx amort.');
+  set('d-rpc',      f3(L.rpcPerTx) + '/tx amort.');
+
+  // Dotcommon full card
+  set('dot-full-pct', fP1(r.dotFullPct));
+  set('dot-full-abs', f2(r.dotFullPerTx) + ' per transaction');
+  set('d-paymaster',  f2(DOT_PAYMASTER_PER_TX));
+
+  // Bar chart
+  const barW = p => Math.min((p / BAR_MAX_PCT) * 100, 100).toFixed(1) + '%';
+  document.getElementById('bar-etsy').style.width      = barW(r.etsyPct * 100);
+  document.getElementById('bar-ebay').style.width      = barW(r.ebayPct * 100);
+  document.getElementById('bar-amazon').style.width    = barW(r.amazonPct * 100);
+  document.getElementById('bar-dot-proto').style.width = barW(r.dotProtoPct * 100);
+  const protoW = r.dotProtoPct * 100;
+  const rampW  = r.dotFullPct * 100 - protoW;
+  document.getElementById('bar-dot-proto2').style.width = barW(protoW);
+  document.getElementById('bar-dot-ramp').style.left    = barW(protoW);
+  document.getElementById('bar-dot-ramp').style.width   = barW(rampW);
+  set('barpct-etsy',      fP1(r.etsyPct));
+  set('barpct-ebay',      fP1(r.ebayPct));
+  set('barpct-amazon',    fP1(r.amazonPct));
+  set('barpct-dot-proto', fP1(r.dotProtoPct));
+  set('barpct-dot-full',  fP1(r.dotFullPct));
+
+  // Callout
+  const cheapest  = Math.min(r.etsyPct, r.ebayPct, r.amazonPct);
+  const cheapName = r.etsyPct === cheapest ? 'Etsy' : r.ebayPct === cheapest ? 'eBay' : 'Amazon';
+  const saveProto = cheapest - r.dotProtoPct;
+  const saveFull  = cheapest - r.dotFullPct;
+  const callout   = document.getElementById('callout-text');
+  if (saveProto > 0) {
+    callout.innerHTML = `At $${txSize} avg transaction and ${fK(annualGMV)} annual GMV across ${members.toLocaleString()} network members, Dotcommon's protocol layer (<strong>${fP1(r.dotProtoPct)}</strong>) saves <strong>${fP1(saveProto)}</strong> vs ${cheapName} (${fP1(cheapest)}) — <strong>${fK(saveProto * annualGMV)}/year</strong> returned to the seller. With fiat ramp included (<strong>${fP1(r.dotFullPct)}</strong>), savings narrow to <strong>${fP1(saveFull)}</strong> (<strong>${fK(saveFull * annualGMV)}/year</strong>). Sellers holding DAI avoid the ramp entirely and pay the protocol rate only.`;
+  } else {
+    callout.innerHTML = `At this transaction size, per-transaction fixed costs (gas, attestation, pinning) are non-trivial relative to the GMV. Protocol cost is <strong>${fP1(r.dotProtoPct)}</strong> vs ${cheapName}'s <strong>${fP1(cheapest)}</strong>. Increase transaction size, GMV, or network membership to see the structural cost advantage emerge.`;
+  }
+
+  updateAudit(txSize, annualGMV, members, listings, ipfs, zk, kleros, rpc, daoVotes, lifetime, r);
+}
+
+document.querySelectorAll('input[type=range]').forEach(el => el.addEventListener('input', update));
+update();
+
+// ═══════════════════════════════════════════════════════════════════
+// AUDIT PANEL
+// ═══════════════════════════════════════════════════════════════════
+function toggleAudit() {
+  document.getElementById('audit-panel').classList.toggle('open');
+  document.getElementById('audit-chevron').classList.toggle('open');
+}
+
+// Constants grid — rendered once on load
+const CONSTANTS_DEF = [
+  { name: 'ETSY_TRANSACTION_FEE',     val: ETSY_TRANSACTION_FEE,     fmt: 'pct', desc: 'Etsy transaction fee' },
+  { name: 'ETSY_PAYMENT_PCT',         val: ETSY_PAYMENT_PCT,         fmt: 'pct', desc: 'Etsy payment processing %' },
+  { name: 'ETSY_PAYMENT_FIXED',       val: ETSY_PAYMENT_FIXED,       fmt: 'usd', desc: 'Etsy fixed fee per tx' },
+  { name: 'ETSY_LISTING_FEE',         val: ETSY_LISTING_FEE,         fmt: 'usd', desc: 'Etsy listing fee per item' },
+  { name: 'EBAY_FINAL_VALUE_FEE',     val: EBAY_FINAL_VALUE_FEE,     fmt: 'pct', desc: 'eBay final value fee' },
+  { name: 'EBAY_ORDER_FIXED',         val: EBAY_ORDER_FIXED,         fmt: 'usd', desc: 'eBay per-order fixed fee' },
+  { name: 'AMAZON_REFERRAL_FEE',      val: AMAZON_REFERRAL_FEE,      fmt: 'pct', desc: 'Amazon referral fee' },
+  { name: 'AMAZON_PRO_MONTHLY',       val: AMAZON_PRO_MONTHLY,       fmt: 'usd', desc: 'Amazon Pro subscription/mo' },
+  { name: 'DOT_NETWORK_FEE',          val: DOT_NETWORK_FEE,          fmt: 'pct', desc: 'Dotcommon governance-set fee' },
+  { name: 'DOT_DISPUTE_RESERVE',      val: DOT_DISPUTE_RESERVE,      fmt: 'pct', desc: 'Arbitration pool contribution' },
+  { name: 'DOT_ESCROW_GAS_MID',       val: DOT_ESCROW_GAS_MID,       fmt: 'usd', desc: 'Escrow gas midpoint (2 txns)' },
+  { name: 'DOT_REGISTRY_GAS_MID',     val: DOT_REGISTRY_GAS_MID,     fmt: 'usd', desc: 'Registry write gas midpoint' },
+  { name: 'DOT_REGISTRY_UPDATES_PY',  val: DOT_REGISTRY_UPDATES_PY,  fmt: 'raw', desc: 'Listing writes/listing/year' },
+  { name: 'DOT_REP_GAS_MID',          val: DOT_REP_GAS_MID,          fmt: 'usd', desc: 'Reputation write gas midpoint' },
+  { name: 'DOT_GRAPH_QUERIES_PER_TX', val: DOT_GRAPH_QUERIES_PER_TX, fmt: 'raw', desc: 'Graph queries per transaction' },
+  { name: 'DOT_GRAPH_COST_PER_QUERY', val: DOT_GRAPH_COST_PER_QUERY, fmt: 'usd', desc: 'Graph fee per query' },
+  { name: 'DOT_ZK_PROOF_COST',        val: DOT_ZK_PROOF_COST,        fmt: 'usd', desc: 'TLSNotary proof compute (pes.)' },
+  { name: 'DOT_ZK_VERIFY_GAS_MID',    val: DOT_ZK_VERIFY_GAS_MID,    fmt: 'usd', desc: 'ZK on-chain verify gas mid' },
+  { name: 'DOT_KLEROS_FEE_PER_CASE',  val: DOT_KLEROS_FEE_PER_CASE,  fmt: 'usd', desc: 'Kleros court fee per case' },
+  { name: 'DOT_PRIVY_MONTHLY',        val: DOT_PRIVY_MONTHLY,        fmt: 'usd', desc: 'Privy wallet $/user/mo' },
+  { name: 'DOT_ONBOARD_GAS_MID',      val: DOT_ONBOARD_GAS_MID,      fmt: 'usd', desc: 'Onboarding gas midpoint (1×)' },
+  { name: 'DOT_DAO_GAS_PER_VOTE_MID', val: DOT_DAO_GAS_PER_VOTE_MID, fmt: 'usd', desc: 'Aragon vote gas mid/member' },
+  { name: 'RAMP_TOTAL_MID',           val: RAMP_TOTAL_MID,           fmt: 'pct', desc: 'Combined ramp cost midpoint' },
+  { name: 'DOT_PAYMASTER_PER_TX',     val: DOT_PAYMASTER_PER_TX,     fmt: 'usd', desc: 'ERC-4337 paymaster per tx' },
+  { name: 'BAR_MAX_PCT',              val: BAR_MAX_PCT,               fmt: 'raw', desc: 'Bar chart % ceiling' },
+];
+function fmtConst(c) {
+  if (c.fmt === 'pct') return (c.val * 100).toFixed(3) + '%';
+  if (c.fmt === 'usd') return '$' + c.val.toFixed(4);
+  return String(c.val);
+}
+const cgrid = document.getElementById('const-grid');
+CONSTANTS_DEF.forEach(c => {
+  const row = document.createElement('div');
+  row.className = 'audit-const-row';
+  row.innerHTML = `<span class="audit-const-name">${c.name}</span><span class="audit-const-desc">${c.desc}</span><span class="audit-const-val">${fmtConst(c)}</span>`;
+  cgrid.appendChild(row);
+});
+
+function updateAudit(txSize, annualGMV, members, listings, ipfs, zk, kleros, rpc, daoVotes, lifetime, r) {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const L = r.lines;
+
+  // Inputs
+  set('av-txSize',    '$' + txSize);
+  set('av-gmv',       fK(annualGMV));
+  set('av-members',   fI(members));
+  set('av-listings',  listings);
+  set('av-txpy',      fI(r.txPerYear) + ' tx/yr');
+
+  // Per-tx costs
+  set('av-networkfee',  f3(L.networkFeePerTx));
+  set('av-disputeres',  f3(L.disputeResPerTx));
+  set('av-escrowgas',   f3(L.escrowGasPerTx));
+  set('av-repgas',      f3(L.repGasPerTx));
+  set('av-graphfee',    f3(L.graphFeePerTx));
+  set('av-klerospertx', f3(L.kleroCostPerTx));
+
+  // Amortised costs
+  set('av-registrygas',  f3(L.registryPerTx));
+  set('av-zkpertx',      f3(L.zkPerTx));
+  set('av-ipfspertx',    f3(L.ipfsPerTx));
+  set('av-privypertx',   f3(L.privyPerTx));
+  set('av-onboardpertx', f3(L.onboardPerTx));
+  set('av-daopertx',     f3(L.daoPerTx));
+  set('av-rpcpertx',     f3(L.rpcPerTx));
+
+  // Totals
+  set('av-dotproto',    f2(r.dotProtoPerTx));
+  set('av-dotprotopct', fP3(r.dotProtoPct));
+  set('av-ramppertx',   f2(L.rampPerTx));
+  set('av-dotfull',     f2(r.dotFullPerTx));
+  set('av-dotfullpct',  fP3(r.dotFullPct));
+
+  const cheapest = Math.min(r.etsyPct, r.ebayPct, r.amazonPct);
+  set('av-cheapest',  fP3(cheapest));
+  set('av-saveproto', fP3(cheapest - r.dotProtoPct));
+  set('av-savefull',  fP3(cheapest - r.dotFullPct));
+}
+</script>
+
+<!-- Formula audit panel -->
+<div class="audit-toggle" onclick="toggleAudit()">
+  <span class="audit-toggle-label">Formula audit — live computed values</span>
+  <span class="audit-chevron" id="audit-chevron">▾</span>
+</div>
+
+<div class="audit-panel" id="audit-panel">
+
+  <div class="audit-group">
+    <div class="audit-group-label">Input constants — fixed assumptions (not slider-driven)</div>
+    <div class="audit-const-grid" id="const-grid"></div>
+  </div>
+
+  <div class="audit-group">
+    <div class="audit-group-label">Slider inputs and derived primary inputs</div>
+    <table class="audit-table">
+      <tr><td><span class="a-varname">txSize</span></td><td class="a-formula">Avg transaction size (slider)</td><td><span class="a-value dim" id="av-txSize">—</span></td></tr>
+      <tr><td><span class="a-varname">annualGMV</span></td><td class="a-formula">Annual seller GMV (slider)</td><td><span class="a-value dim" id="av-gmv">—</span></td></tr>
+      <tr><td><span class="a-varname">members</span></td><td class="a-formula">Network member count (slider)</td><td><span class="a-value dim" id="av-members">—</span></td></tr>
+      <tr><td><span class="a-varname">listings</span></td><td class="a-formula">Avg active listings per seller (slider)</td><td><span class="a-value dim" id="av-listings">—</span></td></tr>
+      <tr><td><span class="a-varname">txPerYear</span></td><td class="a-formula"><em>annualGMV</em> ÷ <em>txSize</em></td><td><span class="a-value dim" id="av-txpy">—</span></td></tr>
+    </table>
+  </div>
+
+  <div class="audit-group">
+    <div class="audit-group-label">Dotcommon — per-transaction costs (not amortised)</div>
+    <table class="audit-table">
+      <tr><td><span class="a-varname">networkFeePerTx</span></td><td class="a-formula"><em>txSize</em> × DOT_NETWORK_FEE — scales with transaction value</td><td><span class="a-value" id="av-networkfee">—</span></td></tr>
+      <tr><td><span class="a-varname">disputeResPerTx</span></td><td class="a-formula"><em>txSize</em> × DOT_DISPUTE_RESERVE — scales with transaction value</td><td><span class="a-value" id="av-disputeres">—</span></td></tr>
+      <tr><td><span class="a-varname">escrowGasPerTx</span></td><td class="a-formula">DOT_ESCROW_GAS_MID — fixed midpoint (2 txns × avg gas per txn)</td><td><span class="a-value" id="av-escrowgas">—</span></td></tr>
+      <tr><td><span class="a-varname">repGasPerTx</span></td><td class="a-formula">DOT_REP_GAS_MID — one reputation SSTORE per completed transaction</td><td><span class="a-value" id="av-repgas">—</span></td></tr>
+      <tr><td><span class="a-varname">graphFeePerTx</span></td><td class="a-formula">DOT_GRAPH_QUERIES_PER_TX × DOT_GRAPH_COST_PER_QUERY</td><td><span class="a-value" id="av-graphfee">—</span></td></tr>
+      <tr><td><span class="a-varname">kleroCostPerTx</span></td><td class="a-formula">(<em>kleroPct</em> ÷ 100) × DOT_KLEROS_FEE_PER_CASE — expected value: escalation probability × fee</td><td><span class="a-value" id="av-klerospertx">—</span></td></tr>
+    </table>
+  </div>
+
+  <div class="audit-group">
+    <div class="audit-group-label">Dotcommon — per-seller annual costs amortised per transaction (each ÷ txPerYear)</div>
+    <table class="audit-table">
+      <tr><td><span class="a-varname">registryPerTx</span></td><td class="a-formula">(<em>listings</em> × DOT_REGISTRY_UPDATES_PY × DOT_REGISTRY_GAS_MID) ÷ <em>txPerYear</em></td><td><span class="a-value" id="av-registrygas">—</span></td></tr>
+      <tr><td><span class="a-varname">zkPerTx</span></td><td class="a-formula">(<em>zkPerYear</em> × (DOT_ZK_PROOF_COST + DOT_ZK_VERIFY_GAS_MID)) ÷ <em>txPerYear</em></td><td><span class="a-value" id="av-zkpertx">—</span></td></tr>
+      <tr><td><span class="a-varname">ipfsPerTx</span></td><td class="a-formula">(<em>listings</em> × <em>ipfsPerListingPerMo</em> × 12) ÷ <em>txPerYear</em></td><td><span class="a-value" id="av-ipfspertx">—</span></td></tr>
+      <tr><td><span class="a-varname">privyPerTx</span></td><td class="a-formula">(DOT_PRIVY_MONTHLY × 12) ÷ <em>txPerYear</em></td><td><span class="a-value" id="av-privypertx">—</span></td></tr>
+      <tr><td><span class="a-varname">onboardPerTx</span></td><td class="a-formula">DOT_ONBOARD_GAS_MID ÷ (<em>sellerLifetimeYears</em> × <em>txPerYear</em>) — one-time cost spread over lifetime transactions</td><td><span class="a-value" id="av-onboardpertx">—</span></td></tr>
+      <tr><td><span class="a-varname">daoPerTx</span></td><td class="a-formula">(<em>daoVotesPerYear</em> × DOT_DAO_GAS_PER_VOTE_MID) ÷ <em>txPerYear</em></td><td><span class="a-value" id="av-daopertx">—</span></td></tr>
+      <tr><td><span class="a-varname">rpcPerTx</span></td><td class="a-formula">((rpcPerMo × 12) ÷ <em>members</em>) ÷ <em>txPerYear</em> — network cost per member, per transaction</td><td><span class="a-value" id="av-rpcpertx">—</span></td></tr>
+    </table>
+  </div>
+
+  <div class="audit-group">
+    <div class="audit-group-label">Dotcommon — totals</div>
+    <table class="audit-table">
+      <tr><td><span class="a-varname">dotProtoPerTx</span></td><td class="a-formula">sum of all per-transaction and amortised cost lines above</td><td><span class="a-value" id="av-dotproto">—</span></td></tr>
+      <tr><td><span class="a-varname">dotProtoPct</span></td><td class="a-formula"><em>dotProtoPerTx</em> ÷ <em>txSize</em></td><td><span class="a-value" id="av-dotprotopct">—</span></td></tr>
+      <tr><td><span class="a-varname">rampPerTx</span></td><td class="a-formula"><em>txSize</em> × RAMP_TOTAL_MID — both conversion legs at midpoint</td><td><span class="a-value" id="av-ramppertx">—</span></td></tr>
+      <tr><td><span class="a-varname">dotFullPerTx</span></td><td class="a-formula"><em>dotProtoPerTx</em> + <em>rampPerTx</em> + DOT_PAYMASTER_PER_TX</td><td><span class="a-value" id="av-dotfull">—</span></td></tr>
+      <tr><td><span class="a-varname">dotFullPct</span></td><td class="a-formula"><em>dotFullPerTx</em> ÷ <em>txSize</em></td><td><span class="a-value" id="av-dotfullpct">—</span></td></tr>
+    </table>
+  </div>
+
+  <div class="audit-group">
+    <div class="audit-group-label">Savings derivation — vs cheapest traditional platform</div>
+    <table class="audit-table">
+      <tr><td><span class="a-varname">cheapestPlatform</span></td><td class="a-formula">min(etsyPct, ebayPct, amazonPct)</td><td><span class="a-value amber" id="av-cheapest">—</span></td></tr>
+      <tr><td><span class="a-varname">savingsProto</span></td><td class="a-formula"><em>cheapestPlatform</em> − <em>dotProtoPct</em></td><td><span class="a-value" id="av-saveproto">—</span></td></tr>
+      <tr><td><span class="a-varname">savingsFull</span></td><td class="a-formula"><em>cheapestPlatform</em> − <em>dotFullPct</em></td><td><span class="a-value" id="av-savefull">—</span></td></tr>
+    </table>
+  </div>
+
+</div>
+<!-- end audit panel -->
+</body>
+</html>
